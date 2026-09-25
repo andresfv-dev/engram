@@ -196,6 +196,12 @@ func TestDashboardManagedUserDetailPageRendersTokensAndGrants(t *testing.T) {
 			t.Errorf("expected %q in managed user detail page, body=%q", marker, body[:min(len(body), 1500)])
 		}
 	}
+	// The users list row menu links to #tokens and #grants; the detail page must expose both anchors.
+	for _, anchor := range []string{`id="tokens"`, `id="grants"`} {
+		if !strings.Contains(body, anchor) {
+			t.Errorf("expected anchor %s in managed user detail page", anchor)
+		}
+	}
 
 	// No session cookie -> redirect to login, mirroring the dashboard package's requireSession behavior.
 	noCookieRec := performDashboardRequest(srv, http.MethodGet, "/dashboard/admin/users/p-target", nil)

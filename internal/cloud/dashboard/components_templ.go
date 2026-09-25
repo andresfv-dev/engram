@@ -3935,7 +3935,7 @@ func ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princi
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 323, "</div><h3 class=\"section-block-title\">Tokens</h3><div class=\"data-frame\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 323, "</div><h3 id=\"tokens\" class=\"section-block-title\">Tokens</h3><div class=\"data-frame\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -4111,7 +4111,7 @@ func ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princi
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 343, "</div><h3 class=\"section-block-title\">Project Grants</h3><div class=\"data-frame\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 343, "</div><h3 id=\"grants\" class=\"section-block-title\">Project Grants</h3><div class=\"data-frame\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

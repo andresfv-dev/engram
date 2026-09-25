@@ -1138,7 +1138,7 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 				</form>
 			}
 		</div>
-		<h3 class="section-block-title">Tokens</h3>
+		<h3 id="tokens" class="section-block-title">Tokens</h3>
 		<div class="data-frame">
 			if canManageManagedUsers && user.Enabled {
 				<form method="post" action={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(user.PrincipalID) + "/tokens") } class="managed-user-form">
@@ -1204,7 +1204,7 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 				</table>
 			}
 		</div>
-		<h3 class="section-block-title">Project Grants</h3>
+		<h3 id="grants" class="section-block-title">Project Grants</h3>
 		<div class="data-frame">
 			if canManageManagedUsers {
 				<form method="post" action={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(user.PrincipalID) + "/grants") } class="managed-user-form">
