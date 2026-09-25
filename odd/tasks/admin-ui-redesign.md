@@ -95,7 +95,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - `templ generate` regenerated `components_templ.go`.
 - TDD: added `TestDashboardActivityTableIsCardsWithLabels`, `TestBrowserSessionsTableIsCardsWithLabels`, `TestContributorsListTableIsCardsWithLabels`, `TestAdminProjectsTableIsCardsWithLabels`, `TestAdminAuditLogTableIsCardsWithLabels` (`internal/cloud/dashboard/dashboard_test.go`) and `TestDashboardManagedUserDetailTokensAndGrantsTablesAreCardsWithLabels` (`internal/cloud/cloudserver/dashboard_admin_users_test.go`) — RED (missing `table-cards` class / `data-label` attributes), then GREEN after implementation.
 - `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
-- Commit: 345c306.
+- Commit: b7ac419.
 
 ### T7 — success toasts after admin actions — done
 - `internal/cloud/dashboard/notices.go`: a fixed, server-owned allowlist (`noticeMessages`) mapping a notice code to its toast text (`user_created`, `user_enabled`, `user_disabled`, `token_created`, `token_revoked`, `project_granted`, `project_revoked`); `NoticeMessage(code)` returns "" for anything not on the list, so raw query text is never echoed into the page.
@@ -114,7 +114,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - TDD: new tests in `internal/cloud/cloudserver/dashboard_admin_users_test.go` — `TestDashboardCreateManagedUserRedirectCarriesNoticeCode`, `TestDashboardEnableDisableManagedUserRedirectCarriesNoticeCode`, `TestDashboardRevokeManagedTokenRedirectCarriesNoticeCode`, `TestDashboardCreateAndRevokeManagedGrantRedirectCarriesNoticeCode`, `TestDashboardCreateManagedTokenRenderShowsSuccessToast`, `TestDashboardAdminNoticeRendersKnownCodeAndHidesUnknownCode`; also extended the three pre-existing exact-redirect assertions (`TestDashboardCreateManagedUserSucceedsRedirectsAndAudits`, `TestDashboardEnableDisableManagedUserRedirectsAndAudits`) to expect the new `?notice=...` suffix. RED (missing notice codes / no toast markup), then GREEN.
 - `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
 - Deviation: toasts are scoped to the managed-users admin surface (`/dashboard/admin/users*`) — the only pages these seven actions redirect to or render directly — rather than every dashboard page; `LayoutWithNotice` is generic and any future handler can pass a notice the same way.
-- Commit: 815b6f4.
+- Commit: 18b160a.
 
 ### Follow-up: layout did not fit the screen — done
 - Root cause 1: Cloudflare (and browsers) cached `styles.css` for 4 h (`cf-cache-status: HIT`), so the deploy served new markup with the old stylesheet. Fix 4ea75d4: stylesheet URL carries a content hash (`styles.css?v=<sha256[:12]>`); test `TestPagesReferenceVersionedStylesheet` (RED: undefined `StylesVersion`, then GREEN).
@@ -135,3 +135,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Commit: users-table cells carry `data-label`; below 720px each row renders as a card (user + actions, role + status, labelled projects and created date). Desktop table unchanged.
 - TDD: `TestManagedUsersListCellsCarryColumnLabels` (RED: 0 labels, then GREEN); full `go test ./internal/cloud/...` and `go vet` clean.
 - Visual check: headless Chrome via authenticated proxy at 390 px (cards) and 1440 px (table). Deployed.
+
+### Parent review of T6/T7 — done
+- a476a6d: admin.js was included twice on the users page (dialog + toast), so document-level handlers ran twice; now loaded once from the layout. Test `TestAdminScriptLoadedOnceWithDialogAndToast` (RED: 2 includes, then GREEN).
+- Commit messages rewritten locally (unpushed) from `feat(SCRUM-52)` to `feat(dashboard)`: SCRUM-52 is a Jira key of an unrelated project.
