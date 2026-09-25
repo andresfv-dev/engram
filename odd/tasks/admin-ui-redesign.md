@@ -100,3 +100,8 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Commit 430f809: global navigation moved into the header (brand | nav right-aligned | user), compact tabs; all pages full width; breakpoints: <1280px nav on a second header row, <900px tables scroll horizontally, <720px global and admin navs scroll horizontally, <560px header stacks; project cards wider with stacked stat labels.
 - TDD: `TestLayoutPlacesNavigationInsideHeader` (RED: nav rendered after the header, then GREEN); `go test ./internal/cloud/...`, `go vet` clean.
 - Visual check: headless Chrome through an authenticated local proxy (live HTML + local CSS) for Dashboard, Browser, Projects, Contributors and Admin Users at 390, 820, 1280, 1440 and 2560 px.
+
+### Follow-up: users as cards on mobile — done
+- Commit: users-table cells carry `data-label`; below 720px each row renders as a card (user + actions, role + status, labelled projects and created date). Desktop table unchanged.
+- TDD: `TestManagedUsersListCellsCarryColumnLabels` (RED: 0 labels, then GREEN); full `go test ./internal/cloud/...` and `go vet` clean.
+- Visual check: headless Chrome via authenticated proxy at 390 px (cards) and 1440 px (table). Deployed.
