@@ -34,6 +34,8 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - [x] T3 Users table rows: avatar, names, role badge, projects summary, status dot, created date.
 - [x] T4 Row actions menu with the supported actions.
 - [x] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
+- [ ] T6 Mobile cards for the remaining dashboard tables (contributors, audit log, user detail tokens and grants, and any other `data-table` on admin or main pages): every cell labelled, rows rendered as cards below 720px.
+- [ ] T7 Success toasts after admin actions (create user, enable/disable user, create/revoke token, grant/revoke project): transient, dismissible, accessible (`role="status"`), messages from a fixed allowlist of notice codes, never from raw user input.
 
 ## Acceptance criteria
 
