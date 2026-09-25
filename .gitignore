@@ -32,3 +32,6 @@ Thumbs.db
 engram-dev
 .atl/
 .release-notes-beta.md
+.env
+*.credentials
+backups/

@@ -1,0 +1,51 @@
+name: engram-cloud
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - engram-cloud-pg:/var/lib/postgresql/data
+    networks:
+      - private
+
+  cloud:
+    build:
+      context: .
+      dockerfile: docker/cloud/Dockerfile
+      args:
+        VERSION: 2.1.0
+    image: local/engram-cloud:v2.1.0
+    container_name: engram-cloud
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      ENGRAM_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    command: ["cloud", "serve"]
+    networks:
+      - private
+      - proxy_net
+
+volumes:
+  engram-cloud-pg:
+
+networks:
+  private:
+    internal: true
+  proxy_net:
+    external: true
