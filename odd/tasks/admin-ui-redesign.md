@@ -114,7 +114,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - TDD: new tests in `internal/cloud/cloudserver/dashboard_admin_users_test.go` — `TestDashboardCreateManagedUserRedirectCarriesNoticeCode`, `TestDashboardEnableDisableManagedUserRedirectCarriesNoticeCode`, `TestDashboardRevokeManagedTokenRedirectCarriesNoticeCode`, `TestDashboardCreateAndRevokeManagedGrantRedirectCarriesNoticeCode`, `TestDashboardCreateManagedTokenRenderShowsSuccessToast`, `TestDashboardAdminNoticeRendersKnownCodeAndHidesUnknownCode`; also extended the three pre-existing exact-redirect assertions (`TestDashboardCreateManagedUserSucceedsRedirectsAndAudits`, `TestDashboardEnableDisableManagedUserRedirectsAndAudits`) to expect the new `?notice=...` suffix. RED (missing notice codes / no toast markup), then GREEN.
 - `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
 - Deviation: toasts are scoped to the managed-users admin surface (`/dashboard/admin/users*`) — the only pages these seven actions redirect to or render directly — rather than every dashboard page; `LayoutWithNotice` is generic and any future handler can pass a notice the same way.
-- Commit: (recorded below after commit).
+- Commit: 815b6f4.
 
 ### Follow-up: layout did not fit the screen — done
 - Root cause 1: Cloudflare (and browsers) cached `styles.css` for 4 h (`cf-cache-status: HIT`), so the deploy served new markup with the old stylesheet. Fix 4ea75d4: stylesheet URL carries a content hash (`styles.css?v=<sha256[:12]>`); test `TestPagesReferenceVersionedStylesheet` (RED: undefined `StylesVersion`, then GREEN).
