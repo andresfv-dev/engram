@@ -35,7 +35,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - [x] T4 Row actions menu with the supported actions.
 - [x] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
 - [x] T6 Mobile cards for the remaining dashboard tables (contributors, audit log, user detail tokens and grants, and any other `data-table` on admin or main pages): every cell labelled, rows rendered as cards below 720px.
-- [ ] T7 Success toasts after admin actions (create user, enable/disable user, create/revoke token, grant/revoke project): transient, dismissible, accessible (`role="status"`), messages from a fixed allowlist of notice codes, never from raw user input.
+- [x] T7 Success toasts after admin actions (create user, enable/disable user, create/revoke token, grant/revoke project): transient, dismissible, accessible (`role="status"`), messages from a fixed allowlist of notice codes, never from raw user input.
 
 ## Acceptance criteria
 
@@ -95,6 +95,25 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - `templ generate` regenerated `components_templ.go`.
 - TDD: added `TestDashboardActivityTableIsCardsWithLabels`, `TestBrowserSessionsTableIsCardsWithLabels`, `TestContributorsListTableIsCardsWithLabels`, `TestAdminProjectsTableIsCardsWithLabels`, `TestAdminAuditLogTableIsCardsWithLabels` (`internal/cloud/dashboard/dashboard_test.go`) and `TestDashboardManagedUserDetailTokensAndGrantsTablesAreCardsWithLabels` (`internal/cloud/cloudserver/dashboard_admin_users_test.go`) — RED (missing `table-cards` class / `data-label` attributes), then GREEN after implementation.
 - `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
+- Commit: 345c306.
+
+### T7 — success toasts after admin actions — done
+- `internal/cloud/dashboard/notices.go`: a fixed, server-owned allowlist (`noticeMessages`) mapping a notice code to its toast text (`user_created`, `user_enabled`, `user_disabled`, `token_created`, `token_revoked`, `project_granted`, `project_revoked`); `NoticeMessage(code)` returns "" for anything not on the list, so raw query text is never echoed into the page.
+- `internal/cloud/dashboard/layout.templ`: added `LayoutWithNotice(title, username, activeTab, isAdmin, notice, content)`; `Layout` now just calls it with `notice=""`. When `notice != ""` it renders a `<div class="toast" data-toast role="status" aria-live="polite">` with the message and a close button, plus the (already-existing, now conditionally included) `admin.js` script tag.
+- `internal/cloud/dashboard/static/admin.js`: added the toast's client behavior — auto-dismiss after 4s, dismiss on close-button click, and `history.replaceState` strips the `notice` query param so a reload never re-shows it. Wrapped in try/catch around the URL API so a restrictive environment degrades to "leave the param" rather than breaking the page.
+- `internal/cloud/dashboard/static/styles.css`: appended a `.toast` section — fixed bottom-right, accent-colored left border, full-width bottom bar under 560px.
+- Handlers pass the notice code:
+  - `internal/cloud/dashboard/dashboard.go` `handleAdminUsers`: reads `notice` from the GET query string (set by a preceding redirect) and renders `LayoutWithNotice`.
+  - `internal/cloud/cloudserver/dashboard_admin_users.go`: `redirectDashboardAdmin` now delegates to a new `redirectDashboardAdminWithNotice(w, r, path, notice)`, which appends `?notice=<code>` before the existing HX-Redirect/303 branching (the code is always a handler-chosen constant, never user input). `dashboardAdminLayout` now reads `notice` off the request's query string for GET renders (the managed-user detail page, reached after a token/grant mutation's redirect); a new `dashboardAdminLayoutWithNotice(r, title, component, code)` is used by the one non-redirect render path (token creation renders the show-once token page directly, so it passes `"token_created"` straight through instead of round-tripping via a query param).
+  - Create user -> redirect to `/dashboard/admin/users?notice=user_created`.
+  - Enable/disable user -> redirect to `/dashboard/admin/users?notice=user_enabled` / `?notice=user_disabled`.
+  - Create token -> direct render of `ManagedUserTokenCreatedPage` wrapped with notice `token_created` (no redirect, so the raw token still never touches a URL).
+  - Revoke token -> redirect to the previous page (`/dashboard/admin/users` or `/dashboard/admin/users/{id}`) with `?notice=token_revoked`.
+  - Grant/revoke project -> redirect to `/dashboard/admin/users/{id}` with `?notice=project_granted` / `?notice=project_revoked`.
+  - Failure paths (`http.Error(...)`, `renderDashboardManagedTokenDisabled`, etc.) are untouched — no notice code, no toast.
+- TDD: new tests in `internal/cloud/cloudserver/dashboard_admin_users_test.go` — `TestDashboardCreateManagedUserRedirectCarriesNoticeCode`, `TestDashboardEnableDisableManagedUserRedirectCarriesNoticeCode`, `TestDashboardRevokeManagedTokenRedirectCarriesNoticeCode`, `TestDashboardCreateAndRevokeManagedGrantRedirectCarriesNoticeCode`, `TestDashboardCreateManagedTokenRenderShowsSuccessToast`, `TestDashboardAdminNoticeRendersKnownCodeAndHidesUnknownCode`; also extended the three pre-existing exact-redirect assertions (`TestDashboardCreateManagedUserSucceedsRedirectsAndAudits`, `TestDashboardEnableDisableManagedUserRedirectsAndAudits`) to expect the new `?notice=...` suffix. RED (missing notice codes / no toast markup), then GREEN.
+- `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
+- Deviation: toasts are scoped to the managed-users admin surface (`/dashboard/admin/users*`) — the only pages these seven actions redirect to or render directly — rather than every dashboard page; `LayoutWithNotice` is generic and any future handler can pass a notice the same way.
 - Commit: (recorded below after commit).
 
 ### Follow-up: layout did not fit the screen — done

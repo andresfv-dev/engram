@@ -853,7 +853,11 @@ func (h *handlers) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		renderComponent(w, r, component)
 		return
 	}
-	renderComponent(w, r, Layout("Managed Users", p.DisplayName(), "admin", p.IsAdmin(), component))
+	// admin-ui-redesign T7: a "notice" code from a successful admin-action
+	// redirect (e.g. ?notice=user_created) maps to a fixed toast message via
+	// NoticeMessage; an unrecognized code renders no toast.
+	notice := NoticeMessage(r.URL.Query().Get("notice"))
+	renderComponent(w, r, LayoutWithNotice("Managed Users", p.DisplayName(), "admin", p.IsAdmin(), notice, component))
 }
 
 // loadManagedUserRows fetches every managed human user together with its

@@ -117,8 +117,8 @@ func TestDashboardCreateManagedUserSucceedsRedirectsAndAudits(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("expected 303 redirect after managed user create, got %d body=%q", rec.Code, rec.Body.String())
 	}
-	if dashboardRedirect(rec) != "/dashboard/admin/users" {
-		t.Fatalf("expected redirect to /dashboard/admin/users, got %q", dashboardRedirect(rec))
+	if dashboardRedirect(rec) != "/dashboard/admin/users?notice=user_created" {
+		t.Fatalf("expected redirect to /dashboard/admin/users?notice=user_created, got %q", dashboardRedirect(rec))
 	}
 	if store.createUserCalls != 1 {
 		t.Fatalf("expected exactly one CreateHumanUser call, got %d", store.createUserCalls)
@@ -137,7 +137,7 @@ func TestDashboardCreateManagedUserSucceedsRedirectsAndAudits(t *testing.T) {
 	if htmxRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 with HX-Redirect for HTMX managed user create, got %d body=%q", htmxRec.Code, htmxRec.Body.String())
 	}
-	if htmxRec.Header().Get("HX-Redirect") != "/dashboard/admin/users" {
+	if htmxRec.Header().Get("HX-Redirect") != "/dashboard/admin/users?notice=user_created" {
 		t.Fatalf("expected HX-Redirect header for HTMX managed user create, got %q", htmxRec.Header().Get("HX-Redirect"))
 	}
 }
@@ -153,8 +153,8 @@ func TestDashboardEnableDisableManagedUserRedirectsAndAudits(t *testing.T) {
 	if disableRec.Code != http.StatusSeeOther {
 		t.Fatalf("expected 303 redirect after disable, got %d body=%q", disableRec.Code, disableRec.Body.String())
 	}
-	if dashboardRedirect(disableRec) != "/dashboard/admin/users" {
-		t.Fatalf("expected redirect to /dashboard/admin/users after disable, got %q", dashboardRedirect(disableRec))
+	if dashboardRedirect(disableRec) != "/dashboard/admin/users?notice=user_disabled" {
+		t.Fatalf("expected redirect to /dashboard/admin/users?notice=user_disabled after disable, got %q", dashboardRedirect(disableRec))
 	}
 	if store.users[0].Enabled {
 		t.Fatalf("expected user Enabled=false after disable")
@@ -934,3 +934,82 @@ func TestDashboardManagedUserDetailTokensAndGrantsTablesAreCardsWithLabels(t *te
 	}
 }
 
+// ─── admin-ui-redesign T7: success toasts after admin actions ──────────────
+
+func TestDashboardCreateManagedUserRedirectCarriesNoticeCode(t *testing.T) {
+	srv, _, cookie := dashboardAdminUsersTestServer(t)
+	rec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users", "username=newuser&role=member", cookie, false)
+	if got := dashboardRedirect(rec); got != "/dashboard/admin/users?notice=user_created" {
+		t.Fatalf("expected redirect to carry notice=user_created, got %q", got)
+	}
+}
+
+func TestDashboardEnableDisableManagedUserRedirectCarriesNoticeCode(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target", Role: "member", Enabled: true})
+
+	disableRec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users/p-target/disable", "", cookie, false)
+	if got := dashboardRedirect(disableRec); got != "/dashboard/admin/users?notice=user_disabled" {
+		t.Fatalf("expected disable redirect to carry notice=user_disabled, got %q", got)
+	}
+
+	enableRec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users/p-target/enable", "", cookie, false)
+	if got := dashboardRedirect(enableRec); got != "/dashboard/admin/users?notice=user_enabled" {
+		t.Fatalf("expected enable redirect to carry notice=user_enabled, got %q", got)
+	}
+}
+
+func TestDashboardRevokeManagedTokenRedirectCarriesNoticeCode(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target-user", Role: "member", Enabled: true})
+	store.tokens = append(store.tokens, cloudstore.PrincipalToken{ID: "tok-1", PrincipalID: "p-target", TokenPrefix: "egc_live_abc", Name: "laptop"})
+
+	rec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/tokens/tok-1/revoke", "reason=lost&principal_id=p-target", cookie, false)
+	if got := dashboardRedirect(rec); got != "/dashboard/admin/users/p-target?notice=token_revoked" {
+		t.Fatalf("expected revoke redirect to carry notice=token_revoked, got %q", got)
+	}
+}
+
+func TestDashboardCreateAndRevokeManagedGrantRedirectCarriesNoticeCode(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target-user", Role: "member", Enabled: true})
+
+	createRec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users/p-target/grants", "project=alpha", cookie, false)
+	if got := dashboardRedirect(createRec); got != "/dashboard/admin/users/p-target?notice=project_granted" {
+		t.Fatalf("expected grant-create redirect to carry notice=project_granted, got %q", got)
+	}
+
+	revokeRec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users/p-target/grants/alpha/revoke", "", cookie, false)
+	if got := dashboardRedirect(revokeRec); got != "/dashboard/admin/users/p-target?notice=project_revoked" {
+		t.Fatalf("expected grant-revoke redirect to carry notice=project_revoked, got %q", got)
+	}
+}
+
+func TestDashboardCreateManagedTokenRenderShowsSuccessToast(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target-user", Role: "member", Enabled: true})
+
+	rec := performDashboardForm(srv, http.MethodPost, "/dashboard/admin/users/p-target/tokens", "name=laptop", cookie, false)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 rendering the show-once token page, got %d body=%q", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `role="status"`) || !strings.Contains(body, "Token created") {
+		t.Fatalf("expected a success toast with role=status and message 'Token created', body=%q", body)
+	}
+}
+
+func TestDashboardAdminNoticeRendersKnownCodeAndHidesUnknownCode(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target-user", Role: "member", Enabled: true})
+
+	known := performDashboardRequest(srv, http.MethodGet, "/dashboard/admin/users/p-target?notice=project_granted", cookie)
+	if !strings.Contains(known.Body.String(), `role="status"`) || !strings.Contains(known.Body.String(), "Project access granted") {
+		t.Fatalf("expected toast for known notice code, body=%q", known.Body.String())
+	}
+
+	unknown := performDashboardRequest(srv, http.MethodGet, "/dashboard/admin/users/p-target?notice=not-a-real-code", cookie)
+	if strings.Contains(unknown.Body.String(), `role="status"`) {
+		t.Fatalf("expected no toast for an unknown notice code, body=%q", unknown.Body.String())
+	}
+}

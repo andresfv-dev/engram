@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/a-h/templ"
@@ -59,6 +60,24 @@ func isDashboardHTMXRequest(r *http.Request) bool {
 // using HX-Redirect for HTMX requests (matching handleAdminSyncTogglePost's
 // existing dual plain/HTMX redirect convention) and a normal 303 otherwise.
 func redirectDashboardAdmin(w http.ResponseWriter, r *http.Request, path string) {
+	redirectDashboardAdminWithNotice(w, r, path, "")
+}
+
+// redirectDashboardAdminWithNotice is redirectDashboardAdmin plus a fixed
+// notice code appended as "?notice=<code>" (admin-ui-redesign T7). The
+// landing page's Layout maps the code to a toast message via
+// dashboard.NoticeMessage; an empty notice behaves exactly like
+// redirectDashboardAdmin. The code itself comes only from the handler (never
+// from request input), so nothing user-controlled ever reaches this query
+// value.
+func redirectDashboardAdminWithNotice(w http.ResponseWriter, r *http.Request, path string, notice string) {
+	if notice != "" {
+		sep := "?"
+		if strings.Contains(path, "?") {
+			sep = "&"
+		}
+		path = path + sep + "notice=" + url.QueryEscape(notice)
+	}
 	if isDashboardHTMXRequest(r) {
 		w.Header().Set("HX-Redirect", path)
 		w.WriteHeader(http.StatusOK)
@@ -120,7 +139,20 @@ func parseDashboardMutationForm(w http.ResponseWriter, r *http.Request) bool {
 // (s.dashboardDisplayName, s.isDashboardAdmin) so the two surfaces are
 // visually consistent.
 func (s *CloudServer) dashboardAdminLayout(r *http.Request, title string, component templ.Component) templ.Component {
-	return dashboard.Layout(title, s.dashboardDisplayName(r), "admin", s.isDashboardAdmin(r), component)
+	// admin-ui-redesign T7: a "notice" code on the GET request's query string
+	// (from a preceding successful-mutation redirect) maps to a fixed toast
+	// message; an unrecognized or absent code renders no toast.
+	notice := dashboard.NoticeMessage(r.URL.Query().Get("notice"))
+	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin", s.isDashboardAdmin(r), notice, component)
+}
+
+// dashboardAdminLayoutWithNotice is dashboardAdminLayout but takes the notice
+// code directly instead of reading it from the request's query string. It is
+// used by render paths that respond with the page body directly (never a
+// redirect), such as the show-once token-created page, where there is no
+// preceding redirect to carry a "notice" query value.
+func (s *CloudServer) dashboardAdminLayoutWithNotice(r *http.Request, title string, component templ.Component, noticeCode string) templ.Component {
+	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin", s.isDashboardAdmin(r), dashboard.NoticeMessage(noticeCode), component)
 }
 
 // handleDashboardCreateManagedUser handles POST /dashboard/admin/users.
@@ -159,20 +191,20 @@ func (s *CloudServer) handleDashboardCreateManagedUser(w http.ResponseWriter, r 
 		http.Error(w, fmt.Sprintf("record audit: %v", err), http.StatusInternalServerError)
 		return
 	}
-	redirectDashboardAdmin(w, r, "/dashboard/admin/users")
+	redirectDashboardAdminWithNotice(w, r, "/dashboard/admin/users", "user_created")
 }
 
 // handleDashboardEnableManagedUser handles POST /dashboard/admin/users/{principalID}/enable.
 func (s *CloudServer) handleDashboardEnableManagedUser(w http.ResponseWriter, r *http.Request) {
-	s.handleDashboardSetManagedUserEnabled(w, r, true, authAuditActionUserEnable)
+	s.handleDashboardSetManagedUserEnabled(w, r, true, authAuditActionUserEnable, "user_enabled")
 }
 
 // handleDashboardDisableManagedUser handles POST /dashboard/admin/users/{principalID}/disable.
 func (s *CloudServer) handleDashboardDisableManagedUser(w http.ResponseWriter, r *http.Request) {
-	s.handleDashboardSetManagedUserEnabled(w, r, false, authAuditActionUserDisable)
+	s.handleDashboardSetManagedUserEnabled(w, r, false, authAuditActionUserDisable, "user_disabled")
 }
 
-func (s *CloudServer) handleDashboardSetManagedUserEnabled(w http.ResponseWriter, r *http.Request, enabled bool, action string) {
+func (s *CloudServer) handleDashboardSetManagedUserEnabled(w http.ResponseWriter, r *http.Request, enabled bool, action string, notice string) {
 	actor, ok := s.requireManagedAdmin(w, r)
 	if !ok {
 		return
@@ -194,7 +226,7 @@ func (s *CloudServer) handleDashboardSetManagedUserEnabled(w http.ResponseWriter
 		http.Error(w, fmt.Sprintf("record audit: %v", err), http.StatusInternalServerError)
 		return
 	}
-	redirectDashboardAdmin(w, r, "/dashboard/admin/users")
+	redirectDashboardAdminWithNotice(w, r, "/dashboard/admin/users", notice)
 }
 
 // handleDashboardManagedUserDetail handles GET /dashboard/admin/users/{principalID}.
@@ -328,7 +360,7 @@ func (s *CloudServer) handleDashboardCreateManagedToken(w http.ResponseWriter, r
 		http.Error(w, fmt.Sprintf("create token: %v", err), http.StatusBadRequest)
 		return
 	}
-	renderDashboardAdminComponent(w, r, s.dashboardAdminLayout(r, "Token Created", dashboard.ManagedUserTokenCreatedPage(user, managedToken.Raw, sanitizeTokenForDisplay(token))))
+	renderDashboardAdminComponent(w, r, s.dashboardAdminLayoutWithNotice(r, "Token Created", dashboard.ManagedUserTokenCreatedPage(user, managedToken.Raw, sanitizeTokenForDisplay(token)), "token_created"))
 }
 
 func (s *CloudServer) renderDashboardManagedTokenDisabled(w http.ResponseWriter, r *http.Request, user cloudstore.HumanUser) {
@@ -382,7 +414,7 @@ func (s *CloudServer) handleDashboardRevokeManagedToken(w http.ResponseWriter, r
 	if principalID != "" {
 		redirectPath = "/dashboard/admin/users/" + principalID
 	}
-	redirectDashboardAdmin(w, r, redirectPath)
+	redirectDashboardAdminWithNotice(w, r, redirectPath, "token_revoked")
 }
 
 // handleDashboardCreateManagedGrant handles POST /dashboard/admin/users/{principalID}/grants.
@@ -416,7 +448,7 @@ func (s *CloudServer) handleDashboardCreateManagedGrant(w http.ResponseWriter, r
 		http.Error(w, fmt.Sprintf("record audit: %v", err), http.StatusInternalServerError)
 		return
 	}
-	redirectDashboardAdmin(w, r, "/dashboard/admin/users/"+principalID)
+	redirectDashboardAdminWithNotice(w, r, "/dashboard/admin/users/"+principalID, "project_granted")
 }
 
 // handleDashboardRevokeManagedGrant handles POST /dashboard/admin/users/{principalID}/grants/{project}/revoke.
@@ -449,5 +481,5 @@ func (s *CloudServer) handleDashboardRevokeManagedGrant(w http.ResponseWriter, r
 		http.Error(w, fmt.Sprintf("record audit: %v", err), http.StatusInternalServerError)
 		return
 	}
-	redirectDashboardAdmin(w, r, "/dashboard/admin/users/"+principalID)
+	redirectDashboardAdminWithNotice(w, r, "/dashboard/admin/users/"+principalID, "project_revoked")
 }

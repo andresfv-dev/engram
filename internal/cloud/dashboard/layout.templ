@@ -4,6 +4,14 @@ package dashboard
 // activeTab should be one of: "dashboard", "browser", "projects", "contributors", "admin".
 // ADAPTED: username comes from Principal.DisplayName() at the call site (no context reads).
 templ Layout(title string, username string, activeTab string, isAdmin bool, content templ.Component) {
+	@LayoutWithNotice(title, username, activeTab, isAdmin, "", content)
+}
+
+// LayoutWithNotice is Layout plus an optional transient success toast
+// (admin-ui-redesign T7). notice must already be a resolved display message
+// (see NoticeMessage) — never raw, user-controlled query text — and an empty
+// notice renders no toast at all.
+templ LayoutWithNotice(title string, username string, activeTab string, isAdmin bool, notice string, content templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en" data-theme="dark">
 		<head>
@@ -46,6 +54,13 @@ templ Layout(title string, username string, activeTab string, isAdmin bool, cont
 					</footer>
 				</div>
 			</div>
+			if notice != "" {
+				<div class="toast" data-toast role="status" aria-live="polite">
+					<span class="toast-message">{ notice }</span>
+					<button type="button" class="toast-close" data-toast-close aria-label="Dismiss">×</button>
+				</div>
+				<script src={ "/dashboard/static/admin.js?v=" + AdminScriptVersion } defer></script>
+			}
 		</body>
 	</html>
 }
