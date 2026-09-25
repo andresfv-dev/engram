@@ -923,7 +923,7 @@ templ ManagedUsersListPartial(rows []ManagedUserRow, canManageManagedUsers bool,
 			<tbody>
 				for _, row := range rows {
 					<tr>
-						<td>
+						<td data-label="User">
 							<div class="user-cell">
 								<span class="user-avatar">{ managedUserInitials(row.Username) }</span>
 								<div class="user-cell-names">
@@ -932,15 +932,15 @@ templ ManagedUsersListPartial(rows []ManagedUserRow, canManageManagedUsers bool,
 								</div>
 							</div>
 						</td>
-						<td>
+						<td data-label="Role">
 							if row.Role == cloudstore.PrincipalRoleAdmin {
 								<span class="role-badge role-badge-admin">Admin</span>
 							} else {
 								<span class="role-badge role-badge-member">Member</span>
 							}
 						</td>
-						<td>{ managedUserProjectSummary(row.Projects) }</td>
-						<td>
+						<td data-label="Projects">{ managedUserProjectSummary(row.Projects) }</td>
+						<td data-label="Status">
 							<span class="status-dot-cell">
 								if row.Enabled {
 									<span class="status-dot status-dot-active"></span> Active
@@ -949,9 +949,9 @@ templ ManagedUsersListPartial(rows []ManagedUserRow, canManageManagedUsers bool,
 								}
 							</span>
 						</td>
-						<td>{ formatTimeValue(row.CreatedAt) }</td>
+						<td data-label="Created">{ formatTimeValue(row.CreatedAt) }</td>
 						if canManageManagedUsers {
-							<td>
+							<td data-label="Actions">
 								@managedUserRowActions(row)
 							</td>
 						}

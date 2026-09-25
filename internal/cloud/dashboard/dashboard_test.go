@@ -3360,3 +3360,20 @@ func TestManagedUsersListFiltersBySearchRoleStatusAndProject(t *testing.T) {
 		})
 	}
 }
+
+// TestManagedUsersListCellsCarryColumnLabels asserts every users-table cell
+// names its column, so narrow screens can render each row as a labelled card.
+func TestManagedUsersListCellsCarryColumnLabels(t *testing.T) {
+	mux := newAuthedAdminMux(adminUsersFilterFixture())
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/admin/users/list?auth=ok", nil)
+	req.Header.Set("HX-Request", "true")
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	for _, label := range []string{"User", "Role", "Projects", "Status", "Created", "Actions"} {
+		marker := `data-label="` + label + `"`
+		if got := strings.Count(body, marker); got != 2 {
+			t.Errorf("expected %s on both fixture rows, got %d", marker, got)
+		}
+	}
+}
