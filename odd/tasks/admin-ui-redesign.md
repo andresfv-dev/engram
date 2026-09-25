@@ -63,6 +63,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Admin sidebar: `adminNav` reordered to Overview, Users, Projects, System Health, Audit Log with an "ADMINISTRATION" header; CSS (`.frame-section:has(> .admin-nav)`) turns it into a sticky left sidebar with left-border active highlight, on all admin pages (Overview, Projects, Users, Health, user detail, Audit Log) without changing each page's templ structure.
 
 ### T2, T3, T4 — done (single combined commit)
+- Commit: 5404bc81
 - Delivered together in one commit: `ManagedUserRow` (HumanUser + granted project names) is the shared type threading T2's filters, T3's table columns and T4's row actions through `dashboard.go` and `components.templ`; splitting them into separate commits would have required re-deriving/duplicating that shared plumbing across intermediate, non-compiling states. Reported here rather than silently deviating.
 - `go test ./internal/cloud/dashboard/...`: RED (new tests `TestManagedUsersPageHasSearchFiltersAndCollapsedForm`, `TestManagedUsersListFiltersBySearchRoleStatusAndProject` failed against old handler/templ signatures) then GREEN.
 - `go test ./internal/cloud/...`: GREEN (all packages), including existing `cloudserver` tests asserting the `Create User` button/create-form markers still present.
