@@ -51,3 +51,16 @@ func TestLayoutPlacesNavigationInsideHeader(t *testing.T) {
 		t.Errorf("expected header > brand, nav, user order; got header=%d brand=%d nav=%d user=%d end=%d", header, brand, nav, user, headerEnd)
 	}
 }
+
+// admin.js registers document-level listeners, so a page must load it exactly
+// once even when it shows both the create-user dialog and a toast.
+func TestAdminScriptLoadedOnceWithDialogAndToast(t *testing.T) {
+	var out strings.Builder
+	content := ManagedUsersPage(true, ManagedUserFilter{}, nil, 0)
+	if err := LayoutWithNotice("Users", "admin", "admin", true, "User created", content).Render(context.Background(), &out); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if got := strings.Count(out.String(), "/dashboard/static/admin.js?v="); got != 1 {
+		t.Errorf("expected admin.js exactly once, got %d", got)
+	}
+}
