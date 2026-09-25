@@ -1242,31 +1242,31 @@ select:focus {
 	box-shadow: inset 0 -2px 0 rgba(235, 188, 186, 0.75) !important;
 }
 
-/* Left admin sidebar: any frame-section containing .admin-nav becomes a
-   two-column grid (sidebar + content), without changing the admin templ
-   markup order. */
+/* Admin pages use most of the viewport instead of the default narrow shell. */
+.app-shell:has(.admin-nav) {
+	max-width: min(1600px, 96vw);
+}
+
+/* Left admin sidebar: any frame-section containing .admin-nav reserves a
+   left column and the nav is taken out of the flow, so it never stretches
+   the height of the page header that precedes it in the markup. */
 .frame-section:has(> .admin-nav) {
-	display: grid;
-	grid-template-columns: 220px 1fr;
-	gap: 1.5rem;
-	align-items: start;
+	position: relative;
+	padding-left: calc(220px + 2rem);
+	min-height: 22rem;
 }
 
 .frame-section:has(> .admin-nav) > .admin-nav {
-	grid-column: 1;
-	grid-row: 1 / -1;
-}
-
-.frame-section:has(> .admin-nav) > :not(.admin-nav) {
-	grid-column: 2;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 220px;
 }
 
 .admin-nav {
 	flex-direction: column;
 	align-items: stretch;
 	gap: 0.35rem;
-	position: sticky;
-	top: 1rem;
 }
 
 .admin-nav-header {
@@ -1288,10 +1288,14 @@ select:focus {
 
 @media (max-width: 860px) {
 	.frame-section:has(> .admin-nav) {
-		display: block;
+		padding-left: 0;
+		min-height: 0;
+	}
+	.frame-section:has(> .admin-nav) > .admin-nav {
+		position: static;
+		width: auto;
 	}
 	.admin-nav {
-		position: static;
 		flex-direction: row;
 		flex-wrap: wrap;
 	}
@@ -1337,11 +1341,13 @@ select:focus {
 }
 
 .managed-users-filters input[type="search"] {
-	flex: 1 1 240px;
+	flex: 3 1 280px;
 	margin: 0;
 }
 
 .managed-users-filters select {
+	flex: 0 1 auto;
+	max-width: 13rem;
 	margin: 0;
 	width: auto;
 }
@@ -1437,6 +1443,35 @@ select:focus {
 
 .row-actions > summary.row-actions-toggle::-webkit-details-marker {
 	display: none;
+}
+
+/* Pico draws a chevron after every summary; the admin toggles are buttons. */
+.row-actions > summary.row-actions-toggle::after,
+.create-user-details > summary.button-like::after {
+	display: none;
+}
+
+.admin-users-table td:nth-last-child(2),
+.admin-users-table th:nth-last-child(2),
+.admin-users-table td:nth-child(4) {
+	white-space: nowrap;
+}
+
+.admin-users-table td:nth-child(3) {
+	min-width: 11rem;
+}
+
+#managed-users-content {
+	overflow-x: auto;
+}
+
+.admin-users-table {
+	font-size: 0.88rem;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+	padding: 0.7rem 0.6rem;
 }
 
 .row-actions-menu {
