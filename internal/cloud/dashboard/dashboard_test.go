@@ -3289,7 +3289,7 @@ func adminUsersFilterFixture() parityStoreStub {
 // TestManagedUsersPageHasSearchFiltersAndCollapsedForm asserts the redesigned
 // Users page header, subtitle, search input, Role/Status/Project filters and
 // a collapsed (not always-open) create-user form.
-func TestManagedUsersPageHasSearchFiltersAndCollapsedForm(t *testing.T) {
+func TestManagedUsersPageHasSearchFiltersAndCreateUserDialog(t *testing.T) {
 	mux := newAuthedAdminMux(adminUsersFilterFixture())
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/admin/users?auth=ok", nil))
@@ -3301,7 +3301,10 @@ func TestManagedUsersPageHasSearchFiltersAndCollapsedForm(t *testing.T) {
 		`name="role"`,
 		`name="status"`,
 		`name="project"`,
-		"<details",
+		`data-open-dialog="create-user-dialog"`,
+		`<dialog id="create-user-dialog"`,
+		`data-close-dialog="create-user-dialog"`,
+		`src="/dashboard/static/admin.js`,
 		"Create user",
 		"2 users",
 	} {
@@ -3309,8 +3312,10 @@ func TestManagedUsersPageHasSearchFiltersAndCollapsedForm(t *testing.T) {
 			t.Errorf("expected %q in Users page, body=%q", marker, body[:min(len(body), 2000)])
 		}
 	}
-	if strings.Contains(body, "<details open") {
-		t.Errorf("expected create-user form collapsed by default, body=%q", body[:min(len(body), 2000)])
+	// The create-user form lives in a modal dialog that is closed by default,
+	// so it never pushes the page layout.
+	if strings.Contains(body, "<dialog id=\"create-user-dialog\" open") || strings.Contains(body, "create-user-details") {
+		t.Errorf("expected create-user form in a closed modal dialog, body=%q", body[:min(len(body), 2000)])
 	}
 }
 

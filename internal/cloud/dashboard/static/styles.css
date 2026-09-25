@@ -1244,7 +1244,13 @@ select:focus {
 
 /* Admin pages use most of the viewport instead of the default narrow shell. */
 .app-shell:has(.admin-nav) {
-	max-width: min(1600px, 96vw);
+	max-width: none;
+	margin: 0 1.5rem;
+}
+
+body:has(.admin-nav) .status-ribbon {
+	max-width: none;
+	margin: 0 1.5rem 1rem;
 }
 
 /* Left admin sidebar: any frame-section containing .admin-nav reserves a
@@ -1309,22 +1315,85 @@ select:focus {
 	font-size: 0.85rem;
 }
 
-.create-user-details > summary.button-like {
+.section-header > button.button-like {
 	display: inline-flex;
+	width: auto;
+	margin: 0;
 	cursor: pointer;
 	padding: 0.55rem 0.9rem;
 	border: 1px solid rgba(196, 167, 231, 0.5);
 	color: var(--engram-primary);
 	background: rgba(196, 167, 231, 0.1);
-	list-style: none;
 }
 
-.create-user-details > summary.button-like::-webkit-details-marker {
-	display: none;
+/* Create-user modal. Pico styles every <dialog> as a full-screen overlay for
+   an <article>; this scopes a compact centered panel instead. */
+.admin-dialog[open] {
+	display: block;
+	position: fixed;
+	inset: 0;
+	margin: auto;
+	width: min(34rem, 92vw);
+	min-width: 0;
+	height: fit-content;
+	min-height: 0;
+	max-height: 90vh;
+	overflow-y: auto;
+	padding: 1.5rem;
+	color: var(--engram-text);
+	background: var(--engram-surface);
+	border: 1px solid rgba(196, 167, 231, 0.45);
+	box-shadow: 0 30px 80px var(--engram-shadow);
+	backdrop-filter: none;
 }
 
-.create-user-frame {
-	margin-top: 0.75rem;
+.admin-dialog::backdrop {
+	background: rgba(10, 9, 20, 0.72);
+	backdrop-filter: blur(3px);
+}
+
+.admin-dialog-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.admin-dialog-header h3 {
+	margin: 0;
+}
+
+.admin-dialog-close {
+	width: auto;
+	margin: 0;
+	padding: 0.1rem 0.6rem;
+	font-size: 1.2rem;
+	line-height: 1.4;
+	color: var(--engram-muted);
+	background: transparent;
+	border: 1px solid rgba(110, 106, 134, 0.5);
+}
+
+.admin-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.6rem;
+	margin-top: 0.5rem;
+}
+
+.admin-dialog-actions button {
+	width: auto;
+	margin: 0;
+}
+
+.admin-dialog-actions button.secondary {
+	font-size: 0.8rem;
+	letter-spacing: 0.08em;
+	color: var(--engram-muted);
+	background: transparent;
+	border: 1px solid rgba(110, 106, 134, 0.6);
+	box-shadow: none;
 }
 
 .managed-users-count {
@@ -1446,8 +1515,7 @@ select:focus {
 }
 
 /* Pico draws a chevron after every summary; the admin toggles are buttons. */
-.row-actions > summary.row-actions-toggle::after,
-.create-user-details > summary.button-like::after {
+.row-actions > summary.row-actions-toggle::after {
 	display: none;
 }
 

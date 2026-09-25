@@ -1021,23 +1021,31 @@ templ ManagedUsersPage(canManageManagedUsers bool, filter ManagedUserFilter, pro
 				<p class="section-subtitle">Manage users, roles and project access.</p>
 			</div>
 			if canManageManagedUsers {
-				<details class="create-user-details">
-					<summary class="button-like">+ Create user</summary>
-					<div class="data-frame create-user-frame">
-						<p class="section-kicker">CREATE MANAGED USER</p>
-						<form method="post" action="/dashboard/admin/users" class="managed-user-form">
-							<input type="text" name="username" placeholder="Username" required autocomplete="off"/>
-							<input type="email" name="email" placeholder="Email (optional)" autocomplete="off"/>
-							<input type="text" name="display_name" placeholder="Display name (optional)" autocomplete="off"/>
-							<select name="role">
-								<option value="member">Member</option>
-								<option value="admin">Admin</option>
-							</select>
-							<button type="submit">Create User</button>
-						</form>
-						<p class="muted">New managed users are deny-by-default: they cannot sync any project until an admin grants one explicitly on the user's detail page.</p>
+				<button type="button" class="button-like" data-open-dialog="create-user-dialog">+ Create user</button>
+				<dialog id="create-user-dialog" class="admin-dialog" aria-labelledby="create-user-dialog-title">
+					<div class="admin-dialog-header">
+						<div>
+							<p class="section-kicker">CREATE MANAGED USER</p>
+							<h3 id="create-user-dialog-title">Create user</h3>
+						</div>
+						<button type="button" class="admin-dialog-close" data-close-dialog="create-user-dialog" aria-label="Close">×</button>
 					</div>
-				</details>
+					<form method="post" action="/dashboard/admin/users" class="managed-user-form">
+						<input type="text" name="username" placeholder="Username" required autocomplete="off"/>
+						<input type="email" name="email" placeholder="Email (optional)" autocomplete="off"/>
+						<input type="text" name="display_name" placeholder="Display name (optional)" autocomplete="off"/>
+						<select name="role">
+							<option value="member">Member</option>
+							<option value="admin">Admin</option>
+						</select>
+						<p class="muted">New managed users are deny-by-default: they cannot sync any project until an admin grants one explicitly on the user's detail page.</p>
+						<div class="admin-dialog-actions">
+							<button type="button" class="secondary" data-close-dialog="create-user-dialog">Cancel</button>
+							<button type="submit">Create User</button>
+						</div>
+					</form>
+				</dialog>
+				<script src={ "/dashboard/static/admin.js?v=" + AdminScriptVersion } defer></script>
 			}
 		</div>
 		@adminNav("users")

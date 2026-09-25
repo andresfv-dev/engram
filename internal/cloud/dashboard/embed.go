@@ -14,6 +14,9 @@ var StaticFS embed.FS
 // stylesheet from a previous deploy.
 var StylesVersion = contentVersion("static/styles.css")
 
+// AdminScriptVersion versions the admin dialog script URL the same way.
+var AdminScriptVersion = contentVersion("static/admin.js")
+
 func contentVersion(name string) string {
 	data, err := StaticFS.ReadFile(name)
 	if err != nil {
