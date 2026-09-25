@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -105,6 +107,11 @@ type DashboardStore interface {
 // only renders outcomes and links to those cloudserver-owned routes.
 type ManagedUsersStore interface {
 	ListHumanUsers(ctx context.Context) ([]cloudstore.HumanUser, error)
+	// ListProjectGrants powers the Users table's project summary column and
+	// the Project filter (admin-ui-redesign T2/T3). It is the same
+	// cloudserver-owned read used by the managed-user detail page's grants
+	// section, so no new authorization surface is introduced.
+	ListProjectGrants(ctx context.Context, principalID string) ([]cloudstore.ProjectGrant, error)
 }
 
 type handlers struct {
@@ -833,7 +840,15 @@ func (h *handlers) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	component := ManagedUsersPage(p.CanManageManagedUsers())
+	filter := parseManagedUserFilter(r)
+	allRows, _, err := h.loadManagedUserRows(r)
+	projectOptions := []string{}
+	count := 0
+	if err == nil {
+		projectOptions = distinctProjectNames(allRows)
+		count = len(filterManagedUsers(allRows, filter))
+	}
+	component := ManagedUsersPage(p.CanManageManagedUsers(), filter, projectOptions, count)
 	if isHTMXRequest(r) {
 		renderComponent(w, r, component)
 		return
@@ -841,28 +856,57 @@ func (h *handlers) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	renderComponent(w, r, Layout("Managed Users", p.DisplayName(), "admin", p.IsAdmin(), component))
 }
 
+// loadManagedUserRows fetches every managed human user together with its
+// granted project names (admin-ui-redesign T2/T3). Managed accounts are
+// expected to stay small (see ManagedUsersListPartial doc), so per-user grant
+// lookups here are acceptable and reuse the same cloudserver-owned read the
+// detail page's grants section already uses.
+func (h *handlers) loadManagedUserRows(r *http.Request) ([]ManagedUserRow, bool, error) {
+	if h.cfg.ManagedUsers == nil {
+		return nil, false, nil
+	}
+	users, err := h.cfg.ManagedUsers.ListHumanUsers(r.Context())
+	if err != nil {
+		return nil, true, err
+	}
+	rows := make([]ManagedUserRow, 0, len(users))
+	for _, u := range users {
+		names := []string{}
+		grants, gerr := h.cfg.ManagedUsers.ListProjectGrants(r.Context(), u.PrincipalID)
+		if gerr == nil {
+			for _, g := range grants {
+				names = append(names, g.Project)
+			}
+			sort.Strings(names)
+		}
+		rows = append(rows, ManagedUserRow{HumanUser: u, Projects: names})
+	}
+	return rows, true, nil
+}
+
 // handleAdminUsersList handles GET /dashboard/admin/users/list.
 // R5-2: always returns ManagedUsersListPartial (partial only, no full shell wrapper).
 // R6-2: on store error, always renders a fragment (no Layout wrapper) — partial-only contract.
 // Admin-gated. cloud-user-token-management PR4: renders managed human users,
-// not contributor analytics (see handleAdminUsers).
+// not contributor analytics (see handleAdminUsers). admin-ui-redesign T2/T3:
+// now applies search/role/status/project filters and pagination server-side.
 func (h *handlers) handleAdminUsersList(w http.ResponseWriter, r *http.Request) {
 	p := h.principalFromRequest(r)
 	if !p.IsAdmin() {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	rows := make([]cloudstore.HumanUser, 0)
-	if h.cfg.ManagedUsers != nil {
-		var err error
-		rows, err = h.cfg.ManagedUsers.ListHumanUsers(r.Context())
-		if err != nil {
-			log.Printf("dashboard: managed users list store error: %v", err)
-			renderComponentStatus(w, r, http.StatusBadGateway, EmptyState("Service Unavailable", "Managed user data is temporarily unavailable."))
-			return
-		}
+	filter := parseManagedUserFilter(r)
+	rows, configured, err := h.loadManagedUserRows(r)
+	if configured && err != nil {
+		log.Printf("dashboard: managed users list store error: %v", err)
+		renderComponentStatus(w, r, http.StatusBadGateway, EmptyState("Service Unavailable", "Managed user data is temporarily unavailable."))
+		return
 	}
-	renderComponent(w, r, ManagedUsersListPartial(rows, p.CanManageManagedUsers()))
+	filtered := filterManagedUsers(rows, filter)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageRows, pg := paginateManagedUsers(filtered, page)
+	renderComponent(w, r, ManagedUsersListPartial(pageRows, p.CanManageManagedUsers(), pg, len(filtered), filter))
 }
 
 // handleAdminHealth handles GET /dashboard/admin/health.

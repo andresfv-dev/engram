@@ -29,6 +29,7 @@ type parityStoreStub struct {
 	distinctTypes []string
 	auditRows     []cloudstore.DashboardAuditRow
 	managedUsers  []cloudstore.HumanUser
+	managedGrants map[string][]cloudstore.ProjectGrant
 
 	errManagedUsers           error
 	errListProjects           error
@@ -217,6 +218,11 @@ func (s parityStoreStub) ListHumanUsers(context.Context) ([]cloudstore.HumanUser
 		return nil, s.errManagedUsers
 	}
 	return s.managedUsers, nil
+}
+
+// ListProjectGrants satisfies ManagedUsersStore (admin-ui-redesign T2/T3).
+func (s parityStoreStub) ListProjectGrants(_ context.Context, principalID string) ([]cloudstore.ProjectGrant, error) {
+	return s.managedGrants[principalID], nil
 }
 
 // ─── Batch 6 Tests ───────────────────────────────────────────────────────────
@@ -3261,5 +3267,91 @@ func TestAdminSidebarRendersSectionsWithActiveHighlight(t *testing.T) {
 	}
 	if !strings.Contains(body, `class="active"`) {
 		t.Errorf("expected active item highlight in sidebar, body=%q", body)
+	}
+}
+
+// ─── Admin UI redesign: T2 users page search/filters/count/pagination ──────
+
+func adminUsersFilterFixture() parityStoreStub {
+	grants := map[string][]cloudstore.ProjectGrant{
+		"p-alice": {{PrincipalID: "p-alice", Project: "alpha"}, {PrincipalID: "p-alice", Project: "beta"}},
+		"p-bob":   {{PrincipalID: "p-bob", Project: "alpha"}},
+	}
+	return parityStoreStub{
+		managedUsers: []cloudstore.HumanUser{
+			{PrincipalID: "p-alice", Username: "alice", DisplayName: "Alice A", Email: "alice@example.com", Role: cloudstore.PrincipalRoleAdmin, Enabled: true},
+			{PrincipalID: "p-bob", Username: "bob", DisplayName: "Bob B", Email: "bob@example.com", Role: cloudstore.PrincipalRoleMember, Enabled: false},
+		},
+		managedGrants: grants,
+	}
+}
+
+// TestManagedUsersPageHasSearchFiltersAndCollapsedForm asserts the redesigned
+// Users page header, subtitle, search input, Role/Status/Project filters and
+// a collapsed (not always-open) create-user form.
+func TestManagedUsersPageHasSearchFiltersAndCollapsedForm(t *testing.T) {
+	mux := newAuthedAdminMux(adminUsersFilterFixture())
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/admin/users?auth=ok", nil))
+	body := rec.Body.String()
+	for _, marker := range []string{
+		"<h2>Users</h2>",
+		"Manage users, roles and project access.",
+		`name="q"`,
+		`name="role"`,
+		`name="status"`,
+		`name="project"`,
+		"<details",
+		"Create user",
+		"2 users",
+	} {
+		if !strings.Contains(body, marker) {
+			t.Errorf("expected %q in Users page, body=%q", marker, body[:min(len(body), 2000)])
+		}
+	}
+	if strings.Contains(body, "<details open") {
+		t.Errorf("expected create-user form collapsed by default, body=%q", body[:min(len(body), 2000)])
+	}
+}
+
+// TestManagedUsersListFiltersBySearchRoleStatusAndProject asserts server-side
+// filtering narrows the list, and clearing filters restores all users.
+func TestManagedUsersListFiltersBySearchRoleStatusAndProject(t *testing.T) {
+	mux := newAuthedAdminMux(adminUsersFilterFixture())
+
+	cases := []struct {
+		name   string
+		query  string
+		want   []string
+		absent []string
+	}{
+		{"search by username", "q=ali", []string{"alice"}, []string{"bob"}},
+		{"role filter admin", "role=admin", []string{"alice"}, []string{"bob"}},
+		{"status filter disabled", "status=disabled", []string{"bob"}, []string{"alice"}},
+		{"project filter beta", "project=beta", []string{"alice"}, []string{"bob"}},
+		{"no filter shows all", "", []string{"alice", "bob"}, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			url := "/dashboard/admin/users/list?auth=ok"
+			if tc.query != "" {
+				url += "&" + tc.query
+			}
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			req.Header.Set("HX-Request", "true")
+			mux.ServeHTTP(rec, req)
+			body := rec.Body.String()
+			for _, w := range tc.want {
+				if !strings.Contains(body, w) {
+					t.Errorf("expected %q in filtered list, body=%q", w, body)
+				}
+			}
+			for _, a := range tc.absent {
+				if strings.Contains(body, a) {
+					t.Errorf("did not expect %q in filtered list, body=%q", a, body)
+				}
+			}
+		})
 	}
 }

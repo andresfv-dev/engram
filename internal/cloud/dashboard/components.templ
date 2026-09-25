@@ -901,55 +901,110 @@ templ AdminProjectsPage(controls []cloudstore.ProjectSyncControl) {
 // own separate surface at /dashboard/contributors. Managed user lists are not
 // paginated in the MVP: operator-managed accounts are expected to stay small
 // relative to synced contributor volume.
-templ ManagedUsersListPartial(users []cloudstore.HumanUser, canManageManagedUsers bool) {
-	if len(users) == 0 && canManageManagedUsers {
+templ ManagedUsersListPartial(rows []ManagedUserRow, canManageManagedUsers bool, pg Pagination, totalCount int, filter ManagedUserFilter) {
+	if len(rows) == 0 && totalCount == 0 && canManageManagedUsers {
 		@EmptyState("No Managed Users Yet", "Create the first managed user above. Every managed user is deny-by-default and cannot sync any project until an admin grants one explicitly.")
-	} else if len(users) == 0 {
+	} else if len(rows) == 0 {
 		@EmptyState("No Managed Users Yet", "No managed users are available to review.")
 	} else {
-		<table class="data-table">
+		<table class="data-table admin-users-table">
 			<thead>
 				<tr>
-					<th>Username</th>
-					<th>Display Name</th>
+					<th>User</th>
 					<th>Role</th>
+					<th>Projects</th>
 					<th>Status</th>
 					<th>Created</th>
 					if canManageManagedUsers {
-						<th>Action</th>
+						<th>Actions</th>
 					}
 				</tr>
 			</thead>
 			<tbody>
-				for _, u := range users {
+				for _, row := range rows {
 					<tr>
-						<td><a href={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(u.PrincipalID)) }>{ u.Username }</a></td>
-						<td>{ u.DisplayName }</td>
-						<td>{ u.Role }</td>
 						<td>
-							if u.Enabled {
-								@StatusBadge("Enabled", "success")
+							<div class="user-cell">
+								<span class="user-avatar">{ managedUserInitials(row.Username) }</span>
+								<div class="user-cell-names">
+									<a href={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(row.PrincipalID)) }>{ row.Username }</a>
+									<span class="user-cell-display-name">{ row.DisplayName }</span>
+								</div>
+							</div>
+						</td>
+						<td>
+							if row.Role == cloudstore.PrincipalRoleAdmin {
+								<span class="role-badge role-badge-admin">Admin</span>
 							} else {
-								@StatusBadge("Disabled", "danger")
+								<span class="role-badge role-badge-member">Member</span>
 							}
 						</td>
-						<td>{ formatTimeValue(u.CreatedAt) }</td>
+						<td>{ managedUserProjectSummary(row.Projects) }</td>
+						<td>
+							<span class="status-dot-cell">
+								if row.Enabled {
+									<span class="status-dot status-dot-active"></span> Active
+								} else {
+									<span class="status-dot status-dot-disabled"></span> Disabled
+								}
+							</span>
+						</td>
+						<td>{ formatTimeValue(row.CreatedAt) }</td>
 						if canManageManagedUsers {
 							<td>
-								<form method="post" action={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(u.PrincipalID) + managedUserToggleAction(u.Enabled)) } class="switch-form">
-									if u.Enabled {
-										<button type="submit" class="switch-button is-on">Disable</button>
-									} else {
-										<button type="submit" class="switch-button is-off">Enable</button>
-									}
-								</form>
+								@managedUserRowActions(row)
 							</td>
 						}
 					</tr>
 				}
 			</tbody>
 		</table>
+		@PaginationBar(pg, "/dashboard/admin/users/list", managedUserFilterParams(filter))
 	}
+}
+
+// managedUserFilterParams turns the current filter into extraParams for
+// PaginationBar so page links keep the active search/filters.
+func managedUserFilterParams(filter ManagedUserFilter) map[string]string {
+	params := map[string]string{}
+	if filter.Q != "" {
+		params["q"] = filter.Q
+	}
+	if filter.Role != "" {
+		params["role"] = filter.Role
+	}
+	if filter.Status != "" {
+		params["status"] = filter.Status
+	}
+	if filter.Project != "" {
+		params["project"] = filter.Project
+	}
+	return params
+}
+
+// managedUserRowActions renders the "..." row actions menu (admin-ui-redesign
+// T4). Only actions backed by existing server capabilities are included:
+// View (detail page), Manage projects / Manage tokens (detail page anchors),
+// and Disable/Enable (existing cloudserver-owned POST routes, same
+// form/CSRF/session semantics as the previous switch-form). There is no
+// existing endpoint to edit a user's display name/role, so "Edit user" is
+// intentionally omitted.
+templ managedUserRowActions(row ManagedUserRow) {
+	<details class="row-actions">
+		<summary class="row-actions-toggle">...</summary>
+		<div class="row-actions-menu">
+			<a href={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(row.PrincipalID)) }>View user</a>
+			<a href={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(row.PrincipalID) + "#grants") }>Manage projects</a>
+			<a href={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(row.PrincipalID) + "#tokens") }>Manage tokens</a>
+			<form method="post" action={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(row.PrincipalID) + managedUserToggleAction(row.Enabled)) } class="switch-form row-actions-form">
+				if row.Enabled {
+					<button type="submit" class="row-actions-danger">Disable user</button>
+				} else {
+					<button type="submit">Enable user</button>
+				}
+			</form>
+		</div>
+	</details>
 }
 
 // ManagedUsersPage renders the managed-users shell: a create-user form plus
@@ -957,41 +1012,88 @@ templ ManagedUsersListPartial(users []cloudstore.HumanUser, canManageManagedUser
 // and mutation routes (create/enable/disable/tokens/grants) are owned by
 // internal/cloud/cloudserver, which enforces managed-admin authorization and
 // audit for every mutation; this page only renders the form and outcomes.
-templ ManagedUsersPage(canManageManagedUsers bool) {
+templ ManagedUsersPage(canManageManagedUsers bool, filter ManagedUserFilter, projectOptions []string, count int) {
 	<section class="frame-section">
 		<div class="section-header">
 			<div>
 				<p class="section-kicker">ADMIN SURFACE</p>
-				<h2>Managed Users</h2>
+				<h2>Users</h2>
+				<p class="section-subtitle">Manage users, roles and project access.</p>
 			</div>
+			if canManageManagedUsers {
+				<details class="create-user-details">
+					<summary class="button-like">+ Create user</summary>
+					<div class="data-frame create-user-frame">
+						<p class="section-kicker">CREATE MANAGED USER</p>
+						<form method="post" action="/dashboard/admin/users" class="managed-user-form">
+							<input type="text" name="username" placeholder="Username" required autocomplete="off"/>
+							<input type="email" name="email" placeholder="Email (optional)" autocomplete="off"/>
+							<input type="text" name="display_name" placeholder="Display name (optional)" autocomplete="off"/>
+							<select name="role">
+								<option value="member">Member</option>
+								<option value="admin">Admin</option>
+							</select>
+							<button type="submit">Create User</button>
+						</form>
+						<p class="muted">New managed users are deny-by-default: they cannot sync any project until an admin grants one explicitly on the user's detail page.</p>
+					</div>
+				</details>
+			}
 		</div>
 		@adminNav("users")
-		if canManageManagedUsers {
-			<div class="data-frame">
-				<p class="section-kicker">CREATE MANAGED USER</p>
-				<form method="post" action="/dashboard/admin/users" class="managed-user-form">
-					<input type="text" name="username" placeholder="Username" required autocomplete="off"/>
-					<input type="email" name="email" placeholder="Email (optional)" autocomplete="off"/>
-					<input type="text" name="display_name" placeholder="Display name (optional)" autocomplete="off"/>
-					<select name="role">
-						<option value="member">Member</option>
-						<option value="admin">Admin</option>
-					</select>
-					<button type="submit">Create User</button>
-				</form>
-				<p class="muted">New managed users are deny-by-default: they cannot sync any project until an admin grants one explicitly on the user's detail page.</p>
-			</div>
-		} else {
+		if !canManageManagedUsers {
 			@ManagedUserAdministrationNotice()
 		}
-		<h3 class="section-block-title">Managed Users</h3>
+		<p class="managed-users-count">{ fmt.Sprintf("%d users", count) }</p>
+		<form method="get" action="/dashboard/admin/users" class="managed-users-filters" hx-get="/dashboard/admin/users/list" hx-target="#managed-users-content" hx-trigger="keyup changed delay:300ms from:input[name='q'], change from:select">
+			<input type="search" name="q" placeholder="Search username, email, display name" value={ filter.Q } autocomplete="off"/>
+			<select name="role">
+				<option value="all" selected?={ filter.Role == "" || filter.Role == "all" }>Role: All</option>
+				<option value="admin" selected?={ filter.Role == "admin" }>Admin</option>
+				<option value="member" selected?={ filter.Role == "member" }>Member</option>
+			</select>
+			<select name="status">
+				<option value="all" selected?={ filter.Status == "" || filter.Status == "all" }>Status: All</option>
+				<option value="active" selected?={ filter.Status == "active" }>Active</option>
+				<option value="disabled" selected?={ filter.Status == "disabled" }>Disabled</option>
+			</select>
+			<select name="project">
+				<option value="all" selected?={ filter.Project == "" || filter.Project == "all" }>Project: All</option>
+				for _, name := range projectOptions {
+					<option value={ name } selected?={ filter.Project == name }>{ name }</option>
+				}
+			</select>
+		</form>
 		<div id="managed-users-content"
-			hx-get="/dashboard/admin/users/list"
+			hx-get={ managedUsersListURL(filter) }
 			hx-trigger="load"
 			hx-swap="innerHTML">
 			<p class="muted">Loading...</p>
 		</div>
 	</section>
+}
+
+// managedUsersListURL builds the initial hx-get URL for the users list
+// partial, preserving whatever filters are already active in the query
+// string (e.g. a deep link or a full-page reload with filters applied).
+func managedUsersListURL(filter ManagedUserFilter) templ.SafeURL {
+	q := url.Values{}
+	if filter.Q != "" {
+		q.Set("q", filter.Q)
+	}
+	if filter.Role != "" {
+		q.Set("role", filter.Role)
+	}
+	if filter.Status != "" {
+		q.Set("status", filter.Status)
+	}
+	if filter.Project != "" {
+		q.Set("project", filter.Project)
+	}
+	if len(q) == 0 {
+		return templ.SafeURL("/dashboard/admin/users/list")
+	}
+	return templ.SafeURL("/dashboard/admin/users/list?" + q.Encode())
 }
 
 // ManagedUserDetailPage renders a single managed user's profile plus its

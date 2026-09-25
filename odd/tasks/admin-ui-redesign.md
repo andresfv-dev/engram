@@ -30,9 +30,9 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 ## Tasks
 
 - [x] T1 Admin shell: global top bar with Administration entry + left admin sidebar for all admin pages.
-- [ ] T2 Users page: header, search, Role/Status/Project filters, collapsible create-user form, count, pagination.
-- [ ] T3 Users table rows: avatar, names, role badge, projects summary, status dot, created date.
-- [ ] T4 Row actions menu with the supported actions.
+- [x] T2 Users page: header, search, Role/Status/Project filters, collapsible create-user form, count, pagination.
+- [x] T3 Users table rows: avatar, names, role badge, projects summary, status dot, created date.
+- [x] T4 Row actions menu with the supported actions.
 - [ ] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
 
 ## Acceptance criteria
@@ -55,9 +55,18 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Route: delegated direct (one writer; 4+ files to map and 2+ non-trivial files to change).
 
 ### T1 — done
-- Commit: (recorded after commit below)
+- Commit: 939d9366
 - `go test ./internal/cloud/dashboard/...`: RED (2 new tests failed: `TestNavTabsAdministrationEntryHighlighted`, `TestAdminSidebarRendersSectionsWithActiveHighlight`) then GREEN after implementation.
 - `go vet ./internal/cloud/...`: clean.
 - `go build ./cmd/engram`: clean.
 - Global top bar: Administration entry now uses `navAdminTab` with `.nav-admin-highlight` class (accent color), separate from ordinary tabs.
 - Admin sidebar: `adminNav` reordered to Overview, Users, Projects, System Health, Audit Log with an "ADMINISTRATION" header; CSS (`.frame-section:has(> .admin-nav)`) turns it into a sticky left sidebar with left-border active highlight, on all admin pages (Overview, Projects, Users, Health, user detail, Audit Log) without changing each page's templ structure.
+
+### T2, T3, T4 — done (single combined commit)
+- Delivered together in one commit: `ManagedUserRow` (HumanUser + granted project names) is the shared type threading T2's filters, T3's table columns and T4's row actions through `dashboard.go` and `components.templ`; splitting them into separate commits would have required re-deriving/duplicating that shared plumbing across intermediate, non-compiling states. Reported here rather than silently deviating.
+- `go test ./internal/cloud/dashboard/...`: RED (new tests `TestManagedUsersPageHasSearchFiltersAndCollapsedForm`, `TestManagedUsersListFiltersBySearchRoleStatusAndProject` failed against old handler/templ signatures) then GREEN.
+- `go test ./internal/cloud/...`: GREEN (all packages), including existing `cloudserver` tests asserting the `Create User` button/create-form markers still present.
+- `go vet ./internal/cloud/...`: clean. `go build ./cmd/engram`: clean.
+- T2: `ManagedUsersPage` now renders "Users" title + subtitle, a `q`/`role`/`status`/`project` GET filter form (also wired as an HTMX partial refresh), a `<details>`-collapsed "+ Create user" form (no longer always-open), and a server-computed "N users" count. `handleAdminUsersList`/`handleAdminUsers` apply `ManagedUserFilter` server-side (in-memory over `ListHumanUsers`, consistent with the existing "managed users are not paginated at the DB layer" design) and paginate at 20/page via `PaginationBar`, only shown when the filtered set exceeds one page.
+- T3: `ManagedUsersListPartial` rows now show an initials avatar + username + muted display name, a distinct Admin/Member role badge, a "N projects: a, b, c +N" summary (needs the new `ManagedUsersStore.ListProjectGrants` method, added to the interface and satisfied by the existing `cloudstore.CloudStore.ListProjectGrants` and test stubs), a colored status dot, and the created date.
+- T4: row actions use a `<details>`/`<summary>` "..." menu (no JS) with: View user (detail page), Manage projects / Manage tokens (detail page anchors `#grants`/`#tokens`), and Disable user (red) / Enable user depending on status, posting to the existing enable/disable route unchanged. "Edit user" is OMITTED — there is no existing endpoint to edit a managed user's display name/role (`internal/cloud/cloudserver/cloudserver.go` admin routes only cover create/enable/disable/tokens/grants), so it was never added rather than faked.

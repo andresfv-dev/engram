@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -657,4 +658,155 @@ func dashboardPostLoginPath(next string) string {
 		return defaultDashboardHomePath
 	}
 	return next
+}
+
+// ─── Managed Users filtering (admin-ui-redesign T2/T3) ─────────────────────
+
+const managedUsersPageSize = 20
+
+// ManagedUserRow pairs a HumanUser with its granted project names, sorted,
+// for the redesigned Users table (avatar, projects summary column).
+type ManagedUserRow struct {
+	cloudstore.HumanUser
+	Projects []string
+}
+
+// ManagedUserFilter holds the Users page search/filter query params.
+type ManagedUserFilter struct {
+	Q       string
+	Role    string
+	Status  string
+	Project string
+}
+
+// parseManagedUserFilter reads q/role/status/project from the request query.
+func parseManagedUserFilter(r *http.Request) ManagedUserFilter {
+	q := r.URL.Query()
+	return ManagedUserFilter{
+		Q:       strings.TrimSpace(q.Get("q")),
+		Role:    strings.TrimSpace(q.Get("role")),
+		Status:  strings.TrimSpace(q.Get("status")),
+		Project: strings.TrimSpace(q.Get("project")),
+	}
+}
+
+// matches reports whether a managed user row satisfies the filter.
+func (f ManagedUserFilter) matches(row ManagedUserRow) bool {
+	if f.Q != "" {
+		needle := strings.ToLower(f.Q)
+		haystack := strings.ToLower(row.Username + " " + row.Email + " " + row.DisplayName)
+		if !strings.Contains(haystack, needle) {
+			return false
+		}
+	}
+	if f.Role != "" && !strings.EqualFold(f.Role, "all") && !strings.EqualFold(f.Role, row.Role) {
+		return false
+	}
+	if f.Status != "" && !strings.EqualFold(f.Status, "all") {
+		wantEnabled := strings.EqualFold(f.Status, "active")
+		if row.Enabled != wantEnabled {
+			return false
+		}
+	}
+	if f.Project != "" && !strings.EqualFold(f.Project, "all") {
+		found := false
+		for _, p := range row.Projects {
+			if p == f.Project {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// filterManagedUsers applies the filter to the full row set, preserving order.
+func filterManagedUsers(rows []ManagedUserRow, filter ManagedUserFilter) []ManagedUserRow {
+	out := make([]ManagedUserRow, 0, len(rows))
+	for _, row := range rows {
+		if filter.matches(row) {
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
+// distinctProjectNames returns the sorted, deduplicated set of project names
+// granted to any managed user, for the Users page Project filter options.
+func distinctProjectNames(rows []ManagedUserRow) []string {
+	seen := map[string]bool{}
+	names := make([]string, 0)
+	for _, row := range rows {
+		for _, p := range row.Projects {
+			if !seen[p] {
+				seen[p] = true
+				names = append(names, p)
+			}
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// paginateManagedUsers slices rows to the requested page, using
+// managedUsersPageSize, and returns the resulting Pagination metadata.
+func paginateManagedUsers(rows []ManagedUserRow, page int) ([]ManagedUserRow, Pagination) {
+	total := len(rows)
+	pg := Pagination{Page: page, PageSize: managedUsersPageSize, TotalItems: total}
+	if pg.Page < 1 {
+		pg.Page = 1
+	}
+	pg.TotalPages = (total + pg.PageSize - 1) / pg.PageSize
+	if pg.TotalPages < 1 {
+		pg.TotalPages = 1
+	}
+	if pg.Page > pg.TotalPages {
+		pg.Page = pg.TotalPages
+	}
+	start := pg.Offset()
+	if start > total {
+		start = total
+	}
+	end := start + pg.PageSize
+	if end > total {
+		end = total
+	}
+	return rows[start:end], pg
+}
+
+// managedUserProjectSummary formats the PROJECTS column: "N projects" plus
+// the first 3 project names, then "+N" for the remainder.
+func managedUserProjectSummary(projects []string) string {
+	if len(projects) == 0 {
+		return "0 projects"
+	}
+	label := fmt.Sprintf("%d project", len(projects))
+	if len(projects) != 1 {
+		label += "s"
+	}
+	shown := projects
+	if len(shown) > 3 {
+		shown = shown[:3]
+	}
+	summary := label + ": " + strings.Join(shown, ", ")
+	if rest := len(projects) - len(shown); rest > 0 {
+		summary += fmt.Sprintf(" +%d", rest)
+	}
+	return summary
+}
+
+// managedUserInitials builds the two-letter avatar initials from a username.
+func managedUserInitials(username string) string {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return "?"
+	}
+	runes := []rune(strings.ToUpper(username))
+	if len(runes) == 1 {
+		return string(runes[0])
+	}
+	return string(runes[0:2])
 }
