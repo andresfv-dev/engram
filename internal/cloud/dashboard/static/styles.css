@@ -1227,3 +1227,72 @@ select:focus {
 		align-items: flex-start;
 	}
 }
+
+/* admin redesign */
+
+.nav-admin-highlight {
+	border-color: rgba(235, 188, 186, 0.5) !important;
+	color: var(--engram-accent) !important;
+}
+
+.nav-admin-highlight.nav-admin-active,
+.nav-admin-highlight[aria-selected="true"] {
+	background: linear-gradient(180deg, rgba(235, 188, 186, 0.28), rgba(31, 29, 46, 0.9)) !important;
+	color: var(--engram-accent) !important;
+	box-shadow: inset 0 -2px 0 rgba(235, 188, 186, 0.75) !important;
+}
+
+/* Left admin sidebar: any frame-section containing .admin-nav becomes a
+   two-column grid (sidebar + content), without changing the admin templ
+   markup order. */
+.frame-section:has(> .admin-nav) {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.frame-section:has(> .admin-nav) > .admin-nav {
+	grid-column: 1;
+	grid-row: 1 / -1;
+}
+
+.frame-section:has(> .admin-nav) > :not(.admin-nav) {
+	grid-column: 2;
+}
+
+.admin-nav {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.35rem;
+	position: sticky;
+	top: 1rem;
+}
+
+.admin-nav-header {
+	margin: 0 0 0.5rem 0;
+	font-family: var(--engram-font-display);
+	font-size: 0.72rem;
+	letter-spacing: 0.14em;
+	color: var(--engram-muted);
+}
+
+.admin-nav a {
+	justify-content: flex-start;
+	border-left: 3px solid transparent;
+}
+
+.admin-nav a.active {
+	border-left: 3px solid var(--engram-primary);
+}
+
+@media (max-width: 860px) {
+	.frame-section:has(> .admin-nav) {
+		display: block;
+	}
+	.admin-nav {
+		position: static;
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+}

@@ -3226,3 +3226,40 @@ func TestDashboardPrincipalSyncControlsHandlersSurfaceErrors(t *testing.T) {
 		})
 	}
 }
+
+// ─── Admin UI redesign: T1 admin shell (sidebar + top bar) ─────────────────
+
+// TestNavTabsAdministrationEntryHighlighted asserts the global top bar marks
+// the Administration entry with a distinct highlighted class for admins.
+func TestNavTabsAdministrationEntryHighlighted(t *testing.T) {
+	mux := newAuthedMux(parityStoreStub{}, true)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/?auth=ok", nil))
+	body := rec.Body.String()
+	if !strings.Contains(body, "nav-admin-highlight") {
+		t.Errorf("expected Administration nav entry to carry nav-admin-highlight class, body=%q", body)
+	}
+}
+
+// TestAdminSidebarRendersSectionsWithActiveHighlight verifies the left admin
+// sidebar renders header + all five sections and highlights the active one.
+func TestAdminSidebarRendersSectionsWithActiveHighlight(t *testing.T) {
+	store := parityStoreStub{}
+	mux := newAuthedAdminMux(store)
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/admin/users?auth=ok", nil))
+	body := rec.Body.String()
+
+	if !strings.Contains(body, "ADMINISTRATION") {
+		t.Errorf("expected sidebar header ADMINISTRATION, body=%q", body)
+	}
+	for _, label := range []string{"Overview", "Users", "Projects", "System Health", "Audit Log"} {
+		if !strings.Contains(body, label) {
+			t.Errorf("expected sidebar item %q, body=%q", label, body)
+		}
+	}
+	if !strings.Contains(body, `class="active"`) {
+		t.Errorf("expected active item highlight in sidebar, body=%q", body)
+	}
+}

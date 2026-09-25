@@ -18,7 +18,7 @@ templ NavTabs(activeTab string, isAdmin bool) {
 		@navTab("/dashboard/projects", "Projects", "projects", activeTab)
 		@navTab("/dashboard/contributors", "Contributors", "contributors", activeTab)
 		if isAdmin {
-			@navTab("/dashboard/admin", "Admin", "admin", activeTab)
+			@navAdminTab("/dashboard/admin", "Administration", "admin", activeTab)
 		}
 	</div>
 }
@@ -29,6 +29,16 @@ templ navTab(href string, label string, tabID string, activeTab string) {
 		<a href={ templ.SafeURL(href) } role="tab" aria-selected="true">{ label }</a>
 	} else {
 		<a href={ templ.SafeURL(href) } role="tab" aria-selected="false">{ label }</a>
+	}
+}
+
+// navAdminTab renders the Administration entry with a distinct highlighted
+// class so it stands out from the ordinary nav tabs (admin-ui-redesign T1).
+templ navAdminTab(href string, label string, tabID string, activeTab string) {
+	if tabID == activeTab {
+		<a href={ templ.SafeURL(href) } role="tab" aria-selected="true" class="nav-admin-highlight nav-admin-active">{ label }</a>
+	} else {
+		<a href={ templ.SafeURL(href) } role="tab" aria-selected="false" class="nav-admin-highlight">{ label }</a>
 	}
 }
 
@@ -718,24 +728,27 @@ templ ContributorDetailPage(contributor *cloudstore.DashboardContributorRow, ses
 
 // ─── Phase 8: Admin Views ───────────────────────────────────────────────────
 
-// adminNav renders the shared admin sub-navigation bar.
+// adminNav renders the shared admin left sidebar navigation.
 // active should be one of: "overview", "projects", "users", "health", "audit-log".
+// admin-ui-redesign T1: rendered as a vertical sidebar (see .admin-nav CSS)
+// instead of the previous horizontal tab bar, with a section header.
 templ adminNav(active string) {
 	<div class="admin-nav">
+		<p class="admin-nav-header">ADMINISTRATION</p>
 		if active == "overview" {
 			<a href="/dashboard/admin" class="active">Overview</a>
 		} else {
 			<a href="/dashboard/admin">Overview</a>
 		}
+		if active == "users" {
+			<a href="/dashboard/admin/users" class="active">Users</a>
+		} else {
+			<a href="/dashboard/admin/users">Users</a>
+		}
 		if active == "projects" {
 			<a href="/dashboard/admin/projects" class="active">Projects</a>
 		} else {
 			<a href="/dashboard/admin/projects">Projects</a>
-		}
-		if active == "users" {
-			<a href="/dashboard/admin/users" class="active">Managed Users</a>
-		} else {
-			<a href="/dashboard/admin/users">Managed Users</a>
 		}
 		if active == "health" {
 			<a href="/dashboard/admin/health" class="active">System Health</a>
