@@ -90,3 +90,8 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Root cause 1: Cloudflare (and browsers) cached `styles.css` for 4 h (`cf-cache-status: HIT`), so the deploy served new markup with the old stylesheet. Fix 4ea75d4: stylesheet URL carries a content hash (`styles.css?v=<sha256[:12]>`); test `TestPagesReferenceVersionedStylesheet` (RED: undefined `StylesVersion`, then GREEN).
 - Root cause 2: the sidebar grid placed the nav in the header's row, stretching it and leaving a large gap. Fix 6a8a17e: sidebar positioned out of flow, admin pages widened to `min(1600px, 96vw)`, filters on one row, Pico summary chevrons hidden, users table compacted.
 - Visual check: headless Chrome previews at 1920 and 1366 px show all columns in view. Live: CSS link `?v=004f43fd1dc4`, served content identical to the repo file.
+
+### Follow-up: full width and create-user modal — done
+- Commit 1f07ae5: admin pages and status ribbon span the full viewport (1.5rem side margin); the inline `<details>` create-user form (it pushed the layout when opened) became a centered `<dialog>` opened by `static/admin.js` (content-versioned URL), closable with Escape, Cancel, the close button or a backdrop click.
+- TDD: `TestManagedUsersPageHasSearchFiltersAndCreateUserDialog` (RED: dialog markers missing, then GREEN); `go test ./internal/cloud/...` and `go vet` clean.
+- Visual check: headless Chrome at 2560 px, closed and open dialog, from live HTML; deployed.
