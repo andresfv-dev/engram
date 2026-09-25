@@ -237,7 +237,7 @@ templ DashboardActivityPartial(stats []cloudstore.DashboardProjectRow, pg Pagina
 	if len(stats) == 0 {
 		@EmptyState("No Activity", "No projects match the current search.")
 	} else {
-		<table class="data-table">
+		<table class="data-table table-cards">
 			<thead>
 				<tr>
 					<th>Project</th>
@@ -249,12 +249,12 @@ templ DashboardActivityPartial(stats []cloudstore.DashboardProjectRow, pg Pagina
 			<tbody>
 				for _, s := range stats {
 					<tr>
-						<td>
+						<td data-label="Project">
 							<a href={ templ.SafeURL("/dashboard/projects/" + url.PathEscape(s.Project)) }>{ s.Project }</a>
 						</td>
-						<td>{ fmt.Sprint(s.Sessions) }</td>
-						<td>{ fmt.Sprint(s.Observations) }</td>
-						<td>{ fmt.Sprint(s.Prompts) }</td>
+						<td data-label="Sessions">{ fmt.Sprint(s.Sessions) }</td>
+						<td data-label="Observations">{ fmt.Sprint(s.Observations) }</td>
+						<td data-label="Prompts">{ fmt.Sprint(s.Prompts) }</td>
 					</tr>
 				}
 			</tbody>
@@ -369,7 +369,7 @@ templ SessionsPartial(sessions []cloudstore.DashboardSessionRow, pg Pagination) 
 		@EmptyState("No Sessions", "No sessions match the current project or search filter.")
 	} else {
 		<div class="table-scroll">
-			<table class="data-table">
+			<table class="data-table table-cards">
 				<thead>
 					<tr>
 						<th>Project</th>
@@ -381,19 +381,19 @@ templ SessionsPartial(sessions []cloudstore.DashboardSessionRow, pg Pagination) 
 				<tbody>
 					for _, s := range sessions {
 						<tr>
-							<td>
+							<td data-label="Project">
 								<a href={ templ.SafeURL("/dashboard/sessions/" + url.PathEscape(s.Project) + "/" + url.PathEscape(s.SessionID)) }>{ s.Project }</a>
 								<div class="muted">session { s.SessionID }</div>
 							</td>
-							<td>{ formatTimestamp(s.StartedAt) }</td>
-							<td>
+							<td data-label="Started">{ formatTimestamp(s.StartedAt) }</td>
+							<td data-label="Ended">
 								if s.EndedAt != "" {
 									{ formatTimestamp(s.EndedAt) }
 								} else {
 									@StatusBadge("Active", "success")
 								}
 							</td>
-							<td>{ truncateContent(s.Summary, 100) }</td>
+							<td data-label="Summary">{ truncateContent(s.Summary, 100) }</td>
 						</tr>
 					}
 				</tbody>
@@ -635,7 +635,7 @@ templ ContributorsListPartial(contributors []cloudstore.DashboardContributorRow,
 	if len(contributors) == 0 {
 		@EmptyState("No Contributors Yet", "Contributor activity will appear once team members start syncing.")
 	} else {
-		<table class="data-table">
+		<table class="data-table table-cards">
 			<thead>
 				<tr>
 					<th>Contributor</th>
@@ -647,10 +647,10 @@ templ ContributorsListPartial(contributors []cloudstore.DashboardContributorRow,
 			<tbody>
 				for _, c := range contributors {
 					<tr>
-						<td><a href={ templ.SafeURL("/dashboard/contributors/" + url.PathEscape(c.CreatedBy)) }>{ c.CreatedBy }</a></td>
-						<td>{ fmt.Sprint(c.Chunks) }</td>
-						<td>{ fmt.Sprint(c.Projects) }</td>
-						<td>{ formatTimestampStr(c.LastChunkAt) }</td>
+						<td data-label="Contributor"><a href={ templ.SafeURL("/dashboard/contributors/" + url.PathEscape(c.CreatedBy)) }>{ c.CreatedBy }</a></td>
+						<td data-label="Chunks">{ fmt.Sprint(c.Chunks) }</td>
+						<td data-label="Projects">{ fmt.Sprint(c.Projects) }</td>
+						<td data-label="Last Chunk">{ formatTimestampStr(c.LastChunkAt) }</td>
 					</tr>
 				}
 			</tbody>
@@ -829,7 +829,7 @@ templ AdminProjectsPage(controls []cloudstore.ProjectSyncControl) {
 		if len(controls) == 0 {
 			@EmptyState("No Managed Projects", "Projects appear here once cloud receives data or policy entries.")
 		} else {
-			<table class="data-table">
+			<table class="data-table table-cards">
 				<thead>
 					<tr>
 						<th>Project</th>
@@ -843,15 +843,15 @@ templ AdminProjectsPage(controls []cloudstore.ProjectSyncControl) {
 				<tbody>
 					for _, control := range controls {
 						<tr>
-							<td><a href={ templ.SafeURL("/dashboard/projects/" + url.PathEscape(control.Project)) }>{ control.Project }</a></td>
-							<td>
+							<td data-label="Project"><a href={ templ.SafeURL("/dashboard/projects/" + url.PathEscape(control.Project)) }>{ control.Project }</a></td>
+							<td data-label="Sync">
 								if control.SyncEnabled {
 									@StatusBadge("On", "success")
 								} else {
 									@StatusBadge("Paused", "danger")
 								}
 							</td>
-							<td>
+							<td data-label="Reason">
 								if control.SyncEnabled {
 									<span class="muted">-</span>
 								} else if control.PausedReason != nil {
@@ -860,14 +860,14 @@ templ AdminProjectsPage(controls []cloudstore.ProjectSyncControl) {
 									<span class="muted">No reason provided</span>
 								}
 							</td>
-							<td>
+							<td data-label="Updated By">
 								if control.UpdatedBy != nil {
 									{ *control.UpdatedBy }
 								} else {
 									<span class="muted">System</span>
 								}
 							</td>
-							<td>
+							<td data-label="Updated">
 								if control.UpdatedAt != "" {
 									{ formatTimestamp(control.UpdatedAt) }
 								} else {
@@ -1168,7 +1168,7 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 					@EmptyState("No Tokens", "This user has no managed tokens to review.")
 				}
 			} else {
-				<table class="data-table">
+				<table class="data-table table-cards">
 					<thead>
 						<tr>
 							<th>Prefix</th>
@@ -1184,11 +1184,11 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 					<tbody>
 						for _, tok := range tokens {
 							<tr>
-								<td>{ tok.TokenPrefix }</td>
-								<td>{ emptyDash(tok.Name) }</td>
-								<td>{ formatTimeValue(tok.CreatedAt) }</td>
-								<td>{ formatTimePtr(tok.LastUsedAt) }</td>
-								<td>
+								<td data-label="Prefix">{ tok.TokenPrefix }</td>
+								<td data-label="Name">{ emptyDash(tok.Name) }</td>
+								<td data-label="Created">{ formatTimeValue(tok.CreatedAt) }</td>
+								<td data-label="Last Used">{ formatTimePtr(tok.LastUsedAt) }</td>
+								<td data-label="Status">
 									if tok.RevokedAt != nil {
 										@StatusBadge("Revoked", "danger")
 									} else {
@@ -1227,7 +1227,7 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 					@EmptyState("No Project Grants", "This user has no project grants to review.")
 				}
 			} else {
-				<table class="data-table">
+				<table class="data-table table-cards">
 					<thead>
 						<tr>
 							<th>Project</th>
@@ -1240,8 +1240,8 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 					<tbody>
 						for _, g := range grants {
 							<tr>
-								<td>{ g.Project }</td>
-								<td>{ formatTimeValue(g.CreatedAt) }</td>
+								<td data-label="Project">{ g.Project }</td>
+								<td data-label="Granted">{ formatTimeValue(g.CreatedAt) }</td>
 								if canManageManagedUsers {
 									<td>
 										<form method="post" action={ templ.SafeURL("/dashboard/admin/users/" + url.PathEscape(user.PrincipalID) + "/grants/" + url.PathEscape(g.Project) + "/revoke") } class="switch-form">
@@ -1556,7 +1556,7 @@ templ AdminAuditLogListPartial(entries []cloudstore.DashboardAuditRow, pg Pagina
 		if len(entries) == 0 {
 			@EmptyState("No Audit Entries", "No audit log entries match the current filter.")
 		} else {
-			<table class="data-table">
+			<table class="data-table table-cards">
 				<thead>
 					<tr>
 						<th>Time</th>
@@ -1571,13 +1571,13 @@ templ AdminAuditLogListPartial(entries []cloudstore.DashboardAuditRow, pg Pagina
 				<tbody>
 					for _, entry := range entries {
 						<tr>
-							<td>{ formatTimestampStr(entry.OccurredAt) }</td>
-							<td>{ entry.Contributor }</td>
-							<td>{ entry.Project }</td>
-							<td>{ entry.Action }</td>
-							<td>{ entry.Outcome }</td>
-							<td>{ fmt.Sprint(entry.EntryCount) }</td>
-							<td>{ entry.ReasonCode }</td>
+							<td data-label="Time">{ formatTimestampStr(entry.OccurredAt) }</td>
+							<td data-label="Contributor">{ entry.Contributor }</td>
+							<td data-label="Project">{ entry.Project }</td>
+							<td data-label="Action">{ entry.Action }</td>
+							<td data-label="Outcome">{ entry.Outcome }</td>
+							<td data-label="Entries">{ fmt.Sprint(entry.EntryCount) }</td>
+							<td data-label="Reason">{ entry.ReasonCode }</td>
 						</tr>
 					}
 				</tbody>

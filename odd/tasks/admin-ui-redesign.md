@@ -34,7 +34,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - [x] T3 Users table rows: avatar, names, role badge, projects summary, status dot, created date.
 - [x] T4 Row actions menu with the supported actions.
 - [x] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
-- [ ] T6 Mobile cards for the remaining dashboard tables (contributors, audit log, user detail tokens and grants, and any other `data-table` on admin or main pages): every cell labelled, rows rendered as cards below 720px.
+- [x] T6 Mobile cards for the remaining dashboard tables (contributors, audit log, user detail tokens and grants, and any other `data-table` on admin or main pages): every cell labelled, rows rendered as cards below 720px.
 - [ ] T7 Success toasts after admin actions (create user, enable/disable user, create/revoke token, grant/revoke project): transient, dismissible, accessible (`role="status"`), messages from a fixed allowlist of notice codes, never from raw user input.
 
 ## Acceptance criteria
@@ -87,6 +87,15 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 
 ## Next step
 - User checks the new admin UI in the browser. Rollback: set the compose image back to `local/engram-cloud:v2.1.0` and run `docker compose up -d cloud`.
+
+### T6 — mobile cards for the remaining tables — done
+- Added a shared `table-cards` class + generic CSS rule (`internal/cloud/dashboard/static/styles.css`, appended section) that, below 720px, hides `thead`, renders each `tr` as a bordered/padded card (same look as the existing `.admin-users-table` cards) and labels every `td[data-label]` via `::before { content: attr(data-label) }`. Action-only cells (a lone button/form) keep no `data-label` so they render without a confusing caption.
+- Converted every list-shaped `table.data-table` (i.e. excluding the two key-value `<tr><th>/<td></tr>` tables in `PromptDetailPage`/`AdminHealthPage`, and the already-converted `.admin-users-table`) in `internal/cloud/dashboard/components.templ`: `DashboardActivityPartial`, `SessionsPartial`, `ContributorsListPartial`, `AdminProjectsPage`, `ManagedUserDetailPage` tokens table, `ManagedUserDetailPage` grants table, `AdminAuditLogListPartial`.
+- Also converted the hand-built (non-templ) activity table string in `internal/cloud/dashboard/dashboard.go`'s `handleActivity` (the actual `/dashboard/activity` renderer — `DashboardActivityPartial` itself turned out to be dead code, unused by any handler; converted it anyway for consistency since T6 targets every `data-table`).
+- `templ generate` regenerated `components_templ.go`.
+- TDD: added `TestDashboardActivityTableIsCardsWithLabels`, `TestBrowserSessionsTableIsCardsWithLabels`, `TestContributorsListTableIsCardsWithLabels`, `TestAdminProjectsTableIsCardsWithLabels`, `TestAdminAuditLogTableIsCardsWithLabels` (`internal/cloud/dashboard/dashboard_test.go`) and `TestDashboardManagedUserDetailTokensAndGrantsTablesAreCardsWithLabels` (`internal/cloud/cloudserver/dashboard_admin_users_test.go`) — RED (missing `table-cards` class / `data-label` attributes), then GREEN after implementation.
+- `go test -count=1 ./internal/cloud/...`: GREEN (all packages). `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: clean.
+- Commit: (recorded below after commit).
 
 ### Follow-up: layout did not fit the screen — done
 - Root cause 1: Cloudflare (and browsers) cached `styles.css` for 4 h (`cf-cache-status: HIT`), so the deploy served new markup with the old stylesheet. Fix 4ea75d4: stylesheet URL carries a content hash (`styles.css?v=<sha256[:12]>`); test `TestPagesReferenceVersionedStylesheet` (RED: undefined `StylesVersion`, then GREEN).

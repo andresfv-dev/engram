@@ -905,3 +905,32 @@ func TestDashboardAdminUsersListRouteNotShadowedByDetailWildcard(t *testing.T) {
 		t.Fatalf("expected the managed users list partial to render known users, body=%q", rec.Body.String())
 	}
 }
+
+// ─── admin-ui-redesign T6: mobile cards for the token/grant tables ─────────
+
+func TestDashboardManagedUserDetailTokensAndGrantsTablesAreCardsWithLabels(t *testing.T) {
+	srv, store, cookie := dashboardAdminUsersTestServer(t)
+	store.users = append(store.users, cloudstore.HumanUser{PrincipalID: "p-target", Username: "target-user", Role: "member", Enabled: true})
+	store.tokens = append(store.tokens, cloudstore.PrincipalToken{ID: "tok-1", PrincipalID: "p-target", TokenPrefix: "egc_live_abc", Name: "laptop"})
+	store.grants = append(store.grants, cloudstore.ProjectGrant{PrincipalID: "p-target", Project: "alpha"})
+
+	rec := performDashboardRequest(srv, http.MethodGet, "/dashboard/admin/users/p-target", cookie)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for managed user detail page, got %d body=%q", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if strings.Count(body, `class="data-table table-cards"`) != 2 {
+		t.Errorf("expected both tokens and grants tables to carry table-cards, body=%q", body)
+	}
+	for _, label := range []string{"Prefix", "Name", "Created", "Last Used", "Status"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in tokens table, body=%q", label, body)
+		}
+	}
+	for _, label := range []string{"Project", "Granted"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in grants table, body=%q", label, body)
+		}
+	}
+}
+

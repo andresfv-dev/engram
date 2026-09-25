@@ -3377,3 +3377,120 @@ func TestManagedUsersListCellsCarryColumnLabels(t *testing.T) {
 		}
 	}
 }
+
+// ─── admin-ui-redesign T6: mobile cards for the remaining tables ───────────
+//
+// Each of these tables must carry the shared "table-cards" class and label
+// every data cell with data-label="<Column Header>" so the shared CSS rule
+// (below 720px, table.table-cards renders each row as a labelled card) can
+// apply to it, mirroring the users table's already-converted layout.
+
+func TestDashboardActivityTableIsCardsWithLabels(t *testing.T) {
+	store := parityStoreStub{
+		observations: []cloudstore.DashboardObservationRow{
+			{Project: "proj-a", Type: "decision", Title: "Ship it", SessionID: "sess-1", CreatedAt: "2026-04-23T10:00:00Z"},
+		},
+	}
+	mux := newAuthedMux(store, false)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/activity?auth=ok", nil)
+	req.Header.Set("HX-Request", "true")
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !hasElementWithClass(body, "table", "table-cards") {
+		t.Errorf("expected table.table-cards in dashboard activity partial, body=%q", body)
+	}
+	for _, label := range []string{"Project", "Type", "Title", "Session", "Created"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in dashboard activity partial, body=%q", label, body)
+		}
+	}
+}
+
+func TestBrowserSessionsTableIsCardsWithLabels(t *testing.T) {
+	store := parityStoreStub{
+		sessions: []cloudstore.DashboardSessionRow{
+			{Project: "proj-a", SessionID: "sess-1", StartedAt: "2026-04-23T08:00:00Z"},
+		},
+	}
+	mux := newAuthedMux(store, false)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/browser/sessions?auth=ok", nil)
+	req.Header.Set("HX-Request", "true")
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !hasElementWithClass(body, "table", "table-cards") {
+		t.Errorf("expected table.table-cards in browser sessions partial, body=%q", body)
+	}
+	for _, label := range []string{"Project", "Started", "Ended", "Summary"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in browser sessions partial, body=%q", label, body)
+		}
+	}
+}
+
+func TestContributorsListTableIsCardsWithLabels(t *testing.T) {
+	store := parityStoreStub{
+		contributors: []cloudstore.DashboardContributorRow{
+			{CreatedBy: "alan", Chunks: 10, Projects: 3, LastChunkAt: "2026-04-23T10:00:00Z"},
+		},
+	}
+	mux := newAuthedMux(store, false)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/contributors/list?auth=ok", nil)
+	req.Header.Set("HX-Request", "true")
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !hasElementWithClass(body, "table", "table-cards") {
+		t.Errorf("expected table.table-cards in contributors list partial, body=%q", body)
+	}
+	for _, label := range []string{"Contributor", "Chunks", "Projects", "Last Chunk"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in contributors list partial, body=%q", label, body)
+		}
+	}
+}
+
+func TestAdminProjectsTableIsCardsWithLabels(t *testing.T) {
+	reason := "maintenance"
+	store := parityStoreStub{
+		projects: []cloudstore.DashboardProjectRow{{Project: "proj-a", Chunks: 3}},
+		syncControls: []cloudstore.ProjectSyncControl{
+			{Project: "proj-a", SyncEnabled: false, PausedReason: &reason},
+		},
+	}
+	mux := newAuthedAdminMux(store)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/admin/projects?auth=ok", nil))
+	body := rec.Body.String()
+	if !hasElementWithClass(body, "table", "table-cards") {
+		t.Errorf("expected table.table-cards in admin projects page, body=%q", body)
+	}
+	for _, label := range []string{"Project", "Sync", "Reason", "Updated By", "Updated"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in admin projects page, body=%q", label, body)
+		}
+	}
+}
+
+func TestAdminAuditLogTableIsCardsWithLabels(t *testing.T) {
+	store := parityStoreStub{
+		auditRows: []cloudstore.DashboardAuditRow{
+			{OccurredAt: "2026-04-23T10:00:00Z", Contributor: "alan", Project: "proj-a", Action: "sync", Outcome: "rejected_project_paused", EntryCount: 2, ReasonCode: "paused"},
+		},
+	}
+	mux := newAuthedAdminMux(store)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/admin/audit-log/list?auth=ok", nil)
+	req.Header.Set("HX-Request", "true")
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !hasElementWithClass(body, "table", "table-cards") {
+		t.Errorf("expected table.table-cards in audit log list partial, body=%q", body)
+	}
+	for _, label := range []string{"Time", "Contributor", "Project", "Action", "Outcome", "Entries", "Reason"} {
+		if !strings.Contains(body, `data-label="`+label+`"`) {
+			t.Errorf("expected data-label=%q in audit log list partial, body=%q", label, body)
+		}
+	}
+}

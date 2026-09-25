@@ -387,9 +387,9 @@ func (h *handlers) handleDashboardActivity(w http.ResponseWriter, r *http.Reques
 	if len(rows) == 0 {
 		b.WriteString(`<div class="empty-state"><h3>No Activity</h3><p>No recent observations are available.</p></div>`)
 	} else {
-		b.WriteString(`<table class="data-table"><thead><tr><th>Project</th><th>Type</th><th>Title</th><th>Session</th><th>Created</th></tr></thead><tbody>`)
+		b.WriteString(`<table class="data-table table-cards"><thead><tr><th>Project</th><th>Type</th><th>Title</th><th>Session</th><th>Created</th></tr></thead><tbody>`)
 		for _, row := range rows {
-			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s</td><td>%s</td><td><a href="%s">%s</a></td><td>%s</td></tr>`, html.EscapeString(row.Project), html.EscapeString(row.Type), html.EscapeString(row.Title), safeQuery("/dashboard/browser/sessions/"+url.PathEscape(row.SessionID), preserveQuery(r.URL.RawQuery, "project", row.Project)), html.EscapeString(row.SessionID), html.EscapeString(row.CreatedAt)))
+			b.WriteString(fmt.Sprintf(`<tr><td data-label="Project">%s</td><td data-label="Type">%s</td><td data-label="Title">%s</td><td data-label="Session"><a href="%s">%s</a></td><td data-label="Created">%s</td></tr>`, html.EscapeString(row.Project), html.EscapeString(row.Type), html.EscapeString(row.Title), safeQuery("/dashboard/browser/sessions/"+url.PathEscape(row.SessionID), preserveQuery(r.URL.RawQuery, "project", row.Project)), html.EscapeString(row.SessionID), html.EscapeString(row.CreatedAt)))
 		}
 		b.WriteString(`</tbody></table>`)
 	}

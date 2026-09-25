@@ -1804,3 +1804,59 @@ select:focus {
 	}
 }
 
+/* ─── admin-ui-redesign T6: generic table-cards on narrow screens ───────────
+   Any table.table-cards (contributors, dashboard activity, browser sessions,
+   admin projects, managed-user tokens/grants, audit log) turns into a list of
+   labelled cards below 720px, matching the look already used above for the
+   specialized .admin-users-table. Every labelled td shows its column header
+   via ::before; a td with no data-label (action-only cells with just a
+   button/form) renders unlabelled so buttons stay usable without a
+   confusing caption. */
+@media (max-width: 720px) {
+	.shell-main table.table-cards {
+		display: block;
+		overflow-x: visible;
+		border: none;
+		background: transparent;
+	}
+
+	table.table-cards thead {
+		display: none;
+	}
+
+	table.table-cards tbody {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	table.table-cards tr {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		padding: 0.9rem;
+		border: 1px solid rgba(110, 106, 134, 0.45);
+		background: rgba(31, 29, 46, 0.55);
+	}
+
+	table.table-cards td {
+		display: block;
+		padding: 0;
+		border: none;
+		background: transparent;
+		white-space: normal;
+		min-width: 0;
+	}
+
+	table.table-cards td[data-label]::before {
+		content: attr(data-label);
+		display: block;
+		margin-bottom: 0.15rem;
+		font-family: var(--engram-font-display);
+		font-size: 0.66rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--engram-muted);
+	}
+}
+
