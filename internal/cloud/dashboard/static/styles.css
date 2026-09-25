@@ -1242,16 +1242,6 @@ select:focus {
 	box-shadow: inset 0 -2px 0 rgba(235, 188, 186, 0.75) !important;
 }
 
-/* Admin pages use most of the viewport instead of the default narrow shell. */
-.app-shell:has(.admin-nav) {
-	max-width: none;
-	margin: 0 1.5rem;
-}
-
-body:has(.admin-nav) .status-ribbon {
-	max-width: none;
-	margin: 0 1.5rem 1rem;
-}
 
 /* Left admin sidebar: any frame-section containing .admin-nav reserves a
    left column and the nav is taken out of the flow, so it never stretches
@@ -1580,3 +1570,149 @@ body:has(.admin-nav) .status-ribbon {
 .row-actions-danger {
 	color: var(--engram-danger) !important;
 }
+
+/* app-wide layout: full-width shell, single top bar, responsive breakpoints */
+
+.app-shell {
+	max-width: none;
+	margin: 0 clamp(0.5rem, 1.5vw, 1.5rem);
+}
+
+.status-ribbon {
+	max-width: none;
+	margin: 0 clamp(0.5rem, 1.5vw, 1.5rem) 1rem;
+}
+
+.shell-header {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	column-gap: 1.5rem;
+}
+
+.brand {
+	white-space: nowrap;
+}
+
+.shell-header > .shell-nav {
+	justify-self: end;
+	padding: 0;
+	border-bottom: none;
+}
+
+.shell-header > .shell-nav [role="tablist"] {
+	flex-wrap: nowrap;
+	gap: 0.45rem;
+}
+
+.shell-header > .shell-nav [role="tab"] {
+	padding: 0.5rem 0.8rem;
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
+.shell-header > .user-info {
+	padding-top: 0;
+	align-items: center;
+	white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+	.shell-header {
+		grid-template-columns: 1fr auto;
+		row-gap: 0.8rem;
+	}
+
+	.shell-header > .shell-nav {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		justify-self: stretch;
+		padding-top: 0.7rem;
+		border-top: 1px solid rgba(110, 106, 134, 0.45);
+	}
+}
+
+@media (max-width: 900px) {
+	.shell-main table {
+		display: block;
+		overflow-x: auto;
+	}
+}
+
+@media (max-width: 720px) {
+	.shell-header > .shell-nav [role="tablist"] {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 0.3rem;
+	}
+
+	.shell-header > .shell-nav [role="tab"] {
+		flex: 0 0 auto;
+	}
+
+	.managed-users-filters select {
+		max-width: none;
+		flex: 1 1 45%;
+	}
+}
+
+@media (max-width: 860px) {
+	.admin-nav-header {
+		flex-basis: 100%;
+		margin-bottom: 0.2rem;
+	}
+
+	.admin-nav a {
+		padding: 0.5rem 0.8rem;
+		font-size: 0.72rem;
+	}
+}
+
+@media (max-width: 720px) {
+	.admin-nav {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 0.3rem;
+	}
+
+	.admin-nav-header {
+		display: none;
+	}
+
+	.admin-nav a {
+		flex: 0 0 auto;
+		white-space: nowrap;
+	}
+}
+
+@media (max-width: 560px) {
+	.shell-header {
+		grid-template-columns: 1fr;
+	}
+
+	.shell-header > .user-info {
+		justify-self: start;
+		grid-row: 2;
+	}
+
+	.shell-header > .shell-nav {
+		grid-row: 3;
+	}
+}
+
+/* Project cards: wide enough for three stat boxes with full labels. */
+.project-grid {
+	grid-template-columns: repeat(auto-fill, minmax(min(26rem, 100%), 1fr));
+}
+
+.project-stats {
+	gap: 0.5rem;
+}
+
+.project-stats .stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+}
+

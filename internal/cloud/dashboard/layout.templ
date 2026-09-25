@@ -26,6 +26,9 @@ templ Layout(title string, username string, activeTab string, isAdmin bool, cont
 							<a href="/dashboard/" class="brand">Engram Cloud</a>
 							<p class="brand-subtitle">An elephant never forgets.</p>
 						</div>
+						<nav class="shell-nav">
+							@NavTabs(activeTab, isAdmin)
+						</nav>
 						<div class="user-info">
 							<span class="user-name">{ username }</span>
 							<form method="post" action="/dashboard/logout" style="margin:0">
@@ -35,9 +38,6 @@ templ Layout(title string, username string, activeTab string, isAdmin bool, cont
 							</form>
 						</div>
 					</header>
-					<nav class="shell-nav">
-						@NavTabs(activeTab, isAdmin)
-					</nav>
 					<main class="shell-main">
 						@content
 					</main>
