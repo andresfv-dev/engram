@@ -95,3 +95,8 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - Commit 1f07ae5: admin pages and status ribbon span the full viewport (1.5rem side margin); the inline `<details>` create-user form (it pushed the layout when opened) became a centered `<dialog>` opened by `static/admin.js` (content-versioned URL), closable with Escape, Cancel, the close button or a backdrop click.
 - TDD: `TestManagedUsersPageHasSearchFiltersAndCreateUserDialog` (RED: dialog markers missing, then GREEN); `go test ./internal/cloud/...` and `go vet` clean.
 - Visual check: headless Chrome at 2560 px, closed and open dialog, from live HTML; deployed.
+
+### Follow-up: app-wide top bar, full width and responsive — done (scope extended by the user to the whole app)
+- Commit 430f809: global navigation moved into the header (brand | nav right-aligned | user), compact tabs; all pages full width; breakpoints: <1280px nav on a second header row, <900px tables scroll horizontally, <720px global and admin navs scroll horizontally, <560px header stacks; project cards wider with stacked stat labels.
+- TDD: `TestLayoutPlacesNavigationInsideHeader` (RED: nav rendered after the header, then GREEN); `go test ./internal/cloud/...`, `go vet` clean.
+- Visual check: headless Chrome through an authenticated local proxy (live HTML + local CSS) for Dashboard, Browser, Projects, Contributors and Admin Users at 390, 820, 1280, 1440 and 2560 px.
