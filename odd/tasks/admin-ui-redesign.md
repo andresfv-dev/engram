@@ -33,7 +33,7 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - [x] T2 Users page: header, search, Role/Status/Project filters, collapsible create-user form, count, pagination.
 - [x] T3 Users table rows: avatar, names, role badge, projects summary, status dot, created date.
 - [x] T4 Row actions menu with the supported actions.
-- [ ] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
+- [x] T5 Build image `local/engram-cloud:v2.1.0-admin-ui`, deploy, verify admin pages render and actions work; keep `v2.1.0` image for rollback.
 
 ## Acceptance criteria
 
@@ -71,3 +71,17 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 - T2: `ManagedUsersPage` now renders "Users" title + subtitle, a `q`/`role`/`status`/`project` GET filter form (also wired as an HTMX partial refresh), a `<details>`-collapsed "+ Create user" form (no longer always-open), and a server-computed "N users" count. `handleAdminUsersList`/`handleAdminUsers` apply `ManagedUserFilter` server-side (in-memory over `ListHumanUsers`, consistent with the existing "managed users are not paginated at the DB layer" design) and paginate at 20/page via `PaginationBar`, only shown when the filtered set exceeds one page.
 - T3: `ManagedUsersListPartial` rows now show an initials avatar + username + muted display name, a distinct Admin/Member role badge, a "N projects: a, b, c +N" summary (needs the new `ManagedUsersStore.ListProjectGrants` method, added to the interface and satisfied by the existing `cloudstore.CloudStore.ListProjectGrants` and test stubs), a colored status dot, and the created date.
 - T4: row actions use a `<details>`/`<summary>` "..." menu (no JS) with: View user (detail page), Manage projects / Manage tokens (detail page anchors `#grants`/`#tokens`), and Disable user (red) / Enable user depending on status, posting to the existing enable/disable route unchanged. "Edit user" is OMITTED — there is no existing endpoint to edit a managed user's display name/role (`internal/cloud/cloudserver/cloudserver.go` admin routes only cover create/enable/disable/tokens/grants), so it was never added rather than faked.
+
+### Parent review fix — done
+- Commit: 989266d. The row menu linked to `#tokens`/`#grants` but the detail page headings had no ids. Test extended first (RED: both anchors missing), ids added, templ regenerated (GREEN). `go test ./internal/cloud/...`, `go vet`, `go build` clean.
+
+### Native review — unavailable
+- `gentle-ai review assess`: risk medium, review due (slice budget reached). User granted consent; `review start` stopped with `lens_context_budget_exceeded` (3958 changed lines, mostly regenerated `components_templ.go`). No review authority created. User chose to deploy without native review.
+
+### T5 — done
+- Image `local/engram-cloud:v2.1.0-admin-ui` built and deployed; `v2.1.0` kept for rollback.
+- Live checks on https://engram.andresfvelasquez.dev: login 303, `/dashboard/admin/users` 200 with sidebar, subtitle, search and "9 users"; list partial 200 with View user/Manage projects/Manage tokens on 9 rows, Disable user on 5 enabled and Enable user on 4 disabled users, project counts matching grants; `?status=disabled` shows 4 users; `?q=dan` shows 1 row; user detail 200 with `id="tokens"` and `id="grants"`; dashboard home 200.
+- Edit user omitted: no backend endpoint edits a managed user's display name or role.
+
+## Next step
+- User checks the new admin UI in the browser. Rollback: set the compose image back to `local/engram-cloud:v2.1.0` and run `docker compose up -d cloud`.

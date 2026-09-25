@@ -26,7 +26,7 @@ services:
       dockerfile: docker/cloud/Dockerfile
       args:
         VERSION: 2.1.0
-    image: local/engram-cloud:v2.1.0
+    image: local/engram-cloud:v2.1.0-admin-ui
     container_name: engram-cloud
     restart: unless-stopped
     depends_on:
