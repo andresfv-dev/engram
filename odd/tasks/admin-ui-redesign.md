@@ -85,3 +85,8 @@ Admin pages only (`/dashboard/admin/*`). Other dashboard pages keep their curren
 
 ## Next step
 - User checks the new admin UI in the browser. Rollback: set the compose image back to `local/engram-cloud:v2.1.0` and run `docker compose up -d cloud`.
+
+### Follow-up: layout did not fit the screen — done
+- Root cause 1: Cloudflare (and browsers) cached `styles.css` for 4 h (`cf-cache-status: HIT`), so the deploy served new markup with the old stylesheet. Fix 4ea75d4: stylesheet URL carries a content hash (`styles.css?v=<sha256[:12]>`); test `TestPagesReferenceVersionedStylesheet` (RED: undefined `StylesVersion`, then GREEN).
+- Root cause 2: the sidebar grid placed the nav in the header's row, stretching it and leaving a large gap. Fix 6a8a17e: sidebar positioned out of flow, admin pages widened to `min(1600px, 96vw)`, filters on one row, Pico summary chevrons hidden, users table compacted.
+- Visual check: headless Chrome previews at 1920 and 1366 px show all columns in view. Live: CSS link `?v=004f43fd1dc4`, served content identical to the repo file.
