@@ -955,9 +955,9 @@ func TestDashboardLayoutHTMLStructure(t *testing.T) {
 		{"body", "shell-body"},
 		{"div", "shell-backdrop"},
 		{"div", "app-shell"},
-		{"header", "shell-header"},
+		{"aside", "shell-sidebar"},
 		{"div", "brand-stack"},
-		{"nav", "shell-nav"},
+		{"nav", "sidebar-nav"},
 		{"main", "shell-main"},
 		{"footer", "shell-footer"},
 	}
@@ -3235,15 +3235,16 @@ func TestDashboardPrincipalSyncControlsHandlersSurfaceErrors(t *testing.T) {
 
 // ─── Admin UI redesign: T1 admin shell (sidebar + top bar) ─────────────────
 
-// TestNavTabsAdministrationEntryHighlighted asserts the global top bar marks
-// the Administration entry with a distinct highlighted class for admins.
-func TestNavTabsAdministrationEntryHighlighted(t *testing.T) {
+// TestSidebarAdministrationGroupMarked asserts the sidebar marks the
+// Administration group with its own class for admins (the top bar's
+// nav-admin-highlight entry no longer exists).
+func TestSidebarAdministrationGroupMarked(t *testing.T) {
 	mux := newAuthedMux(parityStoreStub{}, true)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/dashboard/?auth=ok", nil))
 	body := rec.Body.String()
-	if !strings.Contains(body, "nav-admin-highlight") {
-		t.Errorf("expected Administration nav entry to carry nav-admin-highlight class, body=%q", body)
+	if !strings.Contains(body, "nav-group-admin") {
+		t.Errorf("expected Administration group to carry nav-group-admin class, body=%q", body)
 	}
 }
 
@@ -3265,8 +3266,8 @@ func TestAdminSidebarRendersSectionsWithActiveHighlight(t *testing.T) {
 			t.Errorf("expected sidebar item %q, body=%q", label, body)
 		}
 	}
-	if !strings.Contains(body, `class="active"`) {
-		t.Errorf("expected active item highlight in sidebar, body=%q", body)
+	if !strings.Contains(body, `href="/dashboard/admin/users" class="side-link active" aria-current="page"`) {
+		t.Errorf("expected Users highlighted in sidebar, body=%q", body)
 	}
 }
 

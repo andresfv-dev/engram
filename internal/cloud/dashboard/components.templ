@@ -9,36 +9,37 @@ import (
 
 // ─── Shared Components ──────────────────────────────────────────────────────
 
-// NavTabs renders the navigation tab bar.
-// activeTab should be one of: "dashboard", "browser", "projects", "contributors", "admin".
-templ NavTabs(activeTab string, isAdmin bool) {
-	<div role="tablist">
-		@navTab("/dashboard/", "Dashboard", "dashboard", activeTab)
-		@navTab("/dashboard/browser", "Browser", "browser", activeTab)
-		@navTab("/dashboard/projects", "Projects", "projects", activeTab)
-		@navTab("/dashboard/contributors", "Contributors", "contributors", activeTab)
+// SidebarNav renders the left sidebar navigation: a Workspace group for every
+// user and an Administration group for admins only (sidebar-nav T1).
+// activeTab is one of: "dashboard", "browser", "projects", "contributors",
+// "admin-overview" (legacy alias "admin"), "admin-users", "admin-projects",
+// "admin-health", "admin-audit-log".
+templ SidebarNav(activeTab string, isAdmin bool) {
+	<nav class="sidebar-nav" aria-label="Primary">
+		<section class="nav-group nav-group-workspace">
+			<p class="nav-group-title">WORKSPACE</p>
+			for _, item := range workspaceNavItems() {
+				@sidebarLink(item, activeTab)
+			}
+		</section>
 		if isAdmin {
-			@navAdminTab("/dashboard/admin", "Administration", "admin", activeTab)
+			<section class="nav-group nav-group-admin">
+				<p class="nav-group-title">ADMINISTRATION</p>
+				for _, item := range adminNavItems() {
+					@sidebarLink(item, activeTab)
+				}
+			</section>
 		}
-	</div>
+	</nav>
 }
 
-// navTab renders a single nav tab link.
-templ navTab(href string, label string, tabID string, activeTab string) {
-	if tabID == activeTab {
-		<a href={ templ.SafeURL(href) } role="tab" aria-selected="true">{ label }</a>
+// sidebarLink renders one sidebar entry; the active entry carries the
+// "active" class and aria-current="page".
+templ sidebarLink(item sidebarItem, activeTab string) {
+	if item.isActive(activeTab) {
+		<a href={ templ.SafeURL(item.Href) } class="side-link active" aria-current="page">{ item.Label }</a>
 	} else {
-		<a href={ templ.SafeURL(href) } role="tab" aria-selected="false">{ label }</a>
-	}
-}
-
-// navAdminTab renders the Administration entry with a distinct highlighted
-// class so it stands out from the ordinary nav tabs (admin-ui-redesign T1).
-templ navAdminTab(href string, label string, tabID string, activeTab string) {
-	if tabID == activeTab {
-		<a href={ templ.SafeURL(href) } role="tab" aria-selected="true" class="nav-admin-highlight nav-admin-active">{ label }</a>
-	} else {
-		<a href={ templ.SafeURL(href) } role="tab" aria-selected="false" class="nav-admin-highlight">{ label }</a>
+		<a href={ templ.SafeURL(item.Href) } class="side-link">{ item.Label }</a>
 	}
 }
 
@@ -728,41 +729,6 @@ templ ContributorDetailPage(contributor *cloudstore.DashboardContributorRow, ses
 
 // ─── Phase 8: Admin Views ───────────────────────────────────────────────────
 
-// adminNav renders the shared admin left sidebar navigation.
-// active should be one of: "overview", "projects", "users", "health", "audit-log".
-// admin-ui-redesign T1: rendered as a vertical sidebar (see .admin-nav CSS)
-// instead of the previous horizontal tab bar, with a section header.
-templ adminNav(active string) {
-	<div class="admin-nav">
-		<p class="admin-nav-header">ADMINISTRATION</p>
-		if active == "overview" {
-			<a href="/dashboard/admin" class="active">Overview</a>
-		} else {
-			<a href="/dashboard/admin">Overview</a>
-		}
-		if active == "users" {
-			<a href="/dashboard/admin/users" class="active">Users</a>
-		} else {
-			<a href="/dashboard/admin/users">Users</a>
-		}
-		if active == "projects" {
-			<a href="/dashboard/admin/projects" class="active">Projects</a>
-		} else {
-			<a href="/dashboard/admin/projects">Projects</a>
-		}
-		if active == "health" {
-			<a href="/dashboard/admin/health" class="active">System Health</a>
-		} else {
-			<a href="/dashboard/admin/health">System Health</a>
-		}
-		if active == "audit-log" {
-			<a href="/dashboard/admin/audit-log" class="active">Audit Log</a>
-		} else {
-			<a href="/dashboard/admin/audit-log">Audit Log</a>
-		}
-	</div>
-}
-
 // AdminPage renders the admin dashboard landing with sub-navigation.
 // ADAPTED: SystemHealthInfo -> DashboardSystemHealth; ProjectSyncControl kept.
 templ AdminPage(health *cloudstore.DashboardSystemHealth, controls []cloudstore.ProjectSyncControl) {
@@ -773,7 +739,6 @@ templ AdminPage(health *cloudstore.DashboardSystemHealth, controls []cloudstore.
 				<h2>Admin Overview</h2>
 			</div>
 		</div>
-		@adminNav("overview")
 		if health != nil {
 			<div class="dashboard-grid">
 				<div class="stat-card">
@@ -825,7 +790,6 @@ templ AdminProjectsPage(controls []cloudstore.ProjectSyncControl) {
 				<h2>Project Controls</h2>
 			</div>
 		</div>
-		@adminNav("projects")
 		if len(controls) == 0 {
 			@EmptyState("No Managed Projects", "Projects appear here once cloud receives data or policy entries.")
 		} else {
@@ -1047,7 +1011,6 @@ templ ManagedUsersPage(canManageManagedUsers bool, filter ManagedUserFilter, pro
 				</dialog>
 			}
 		</div>
-		@adminNav("users")
 		if !canManageManagedUsers {
 			@ManagedUserAdministrationNotice()
 		}
@@ -1122,7 +1085,6 @@ templ ManagedUserDetailPage(user cloudstore.HumanUser, tokens []cloudstore.Princ
 				@StatusBadge("Disabled", "danger")
 			}
 		</div>
-		@adminNav("users")
 		if !canManageManagedUsers {
 			@ManagedUserAdministrationNotice()
 		}
@@ -1297,7 +1259,6 @@ templ AdminHealthPage(health *cloudstore.DashboardSystemHealth) {
 				<h2>Admin Health</h2>
 			</div>
 		</div>
-		@adminNav("health")
 		<h3 class="section-block-title">System Health</h3>
 		if health != nil {
 			<table class="data-table">
@@ -1520,7 +1481,6 @@ templ AdminAuditLogPage(displayName string, filter cloudstore.AuditFilter) {
 				<h2>Audit Log</h2>
 			</div>
 		</div>
-		@adminNav("audit-log")
 		<div id="audit-log-content"
 			hx-get={ buildAuditListURL(filter) }
 			hx-trigger="load"

@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Layout wraps page content in the base HTML shell with nav, head, and footer.
-// activeTab should be one of: "dashboard", "browser", "projects", "contributors", "admin".
+// activeTab selects the highlighted sidebar item (see SidebarNav).
 // ADAPTED: username comes from Principal.DisplayName() at the call site (no context reads).
 func Layout(title string, username string, activeTab string, isAdmin bool, content templ.Component) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -91,28 +91,28 @@ func LayoutWithNotice(title string, username string, activeTab string, isAdmin b
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><script src=\"/dashboard/static/htmx.min.js\"></script></head><body class=\"shell-body\"><div class=\"shell-backdrop\"><div class=\"status-ribbon\"><span class=\"status-pill\">CLOUD ACTIVE</span> <span class=\"status-copy\">shared memory index / local-first replication / org policy controls</span></div><div class=\"app-shell\"><header class=\"shell-header\"><div class=\"brand-stack\"><a href=\"/dashboard/\" class=\"brand\">Engram Cloud</a><p class=\"brand-subtitle\">An elephant never forgets.</p></div><nav class=\"shell-nav\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><script src=\"/dashboard/static/htmx.min.js\"></script></head><body class=\"shell-body\"><div class=\"shell-backdrop\"><div class=\"status-ribbon\"><span class=\"status-pill\">CLOUD ACTIVE</span> <span class=\"status-copy\">shared memory index / local-first replication / org policy controls</span></div><div class=\"app-shell\"><aside class=\"shell-sidebar\" id=\"shell-sidebar\"><div class=\"brand-stack\"><a href=\"/dashboard/\" class=\"brand\">Engram Cloud</a><p class=\"brand-subtitle\">An elephant never forgets.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = NavTabs(activeTab, isAdmin).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = SidebarNav(activeTab, isAdmin).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</nav><div class=\"user-info\"><span class=\"user-name\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"sidebar-user\"><span class=\"user-name\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/cloud/dashboard/layout.templ`, Line: 41, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/cloud/dashboard/layout.templ`, Line: 39, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span><form method=\"post\" action=\"/dashboard/logout\" style=\"margin:0\"><button type=\"submit\" class=\"user-link logout-link\">Logout</button></form></div></header><main class=\"shell-main\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span><form method=\"post\" action=\"/dashboard/logout\" style=\"margin:0\"><button type=\"submit\" class=\"user-link logout-link\">Logout</button></form></div></aside><div class=\"shell-content\"><main class=\"shell-main\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -120,7 +120,7 @@ func LayoutWithNotice(title string, username string, activeTab string, isAdmin b
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</main><footer class=\"shell-footer\"><small>ENGRAM CLOUD / SHARED MEMORY INDEX / LIVE SYNC READY</small></footer></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</main><footer class=\"shell-footer\"><small>ENGRAM CLOUD / SHARED MEMORY INDEX / LIVE SYNC READY</small></footer></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

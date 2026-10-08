@@ -810,3 +810,38 @@ func managedUserInitials(username string) string {
 	}
 	return string(runes[0:2])
 }
+
+// sidebarItem is one entry of the left sidebar navigation.
+type sidebarItem struct {
+	Href  string
+	Label string
+	ID    string
+}
+
+// isActive reports whether the item is the current page. The legacy "admin"
+// tab value highlights the Administration overview.
+func (i sidebarItem) isActive(activeTab string) bool {
+	if activeTab == "admin" {
+		activeTab = "admin-overview"
+	}
+	return i.ID == activeTab
+}
+
+func workspaceNavItems() []sidebarItem {
+	return []sidebarItem{
+		{Href: "/dashboard/", Label: "Dashboard", ID: "dashboard"},
+		{Href: "/dashboard/browser", Label: "Browser", ID: "browser"},
+		{Href: "/dashboard/projects", Label: "Projects", ID: "projects"},
+		{Href: "/dashboard/contributors", Label: "Contributors", ID: "contributors"},
+	}
+}
+
+func adminNavItems() []sidebarItem {
+	return []sidebarItem{
+		{Href: "/dashboard/admin", Label: "Overview", ID: "admin-overview"},
+		{Href: "/dashboard/admin/users", Label: "Users", ID: "admin-users"},
+		{Href: "/dashboard/admin/projects", Label: "Projects", ID: "admin-projects"},
+		{Href: "/dashboard/admin/health", Label: "System Health", ID: "admin-health"},
+		{Href: "/dashboard/admin/audit-log", Label: "Audit Log", ID: "admin-audit-log"},
+	}
+}

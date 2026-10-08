@@ -31,27 +31,6 @@ func TestPagesReferenceVersionedStylesheet(t *testing.T) {
 	}
 }
 
-// The global navigation sits inside the header, between the brand and the
-// signed-in user, so the header is a single top bar.
-func TestLayoutPlacesNavigationInsideHeader(t *testing.T) {
-	var out strings.Builder
-	if err := Layout("Users", "admin", "admin", true, EmptyState("x", "y")).Render(context.Background(), &out); err != nil {
-		t.Fatalf("render layout: %v", err)
-	}
-	body := out.String()
-	header := strings.Index(body, `<header class="shell-header">`)
-	headerEnd := strings.Index(body, `</header>`)
-	brand := strings.Index(body, `class="brand-stack"`)
-	nav := strings.Index(body, `class="shell-nav"`)
-	user := strings.Index(body, `class="user-info"`)
-	if header < 0 || headerEnd < 0 || brand < 0 || nav < 0 || user < 0 {
-		t.Fatalf("missing header landmarks: header=%d end=%d brand=%d nav=%d user=%d", header, headerEnd, brand, nav, user)
-	}
-	if !(header < brand && brand < nav && nav < user && user < headerEnd) {
-		t.Errorf("expected header > brand, nav, user order; got header=%d brand=%d nav=%d user=%d end=%d", header, brand, nav, user, headerEnd)
-	}
-}
-
 // admin.js registers document-level listeners, so a page must load it exactly
 // once even when it shows both the create-user dialog and a toast.
 func TestAdminScriptLoadedOnceWithDialogAndToast(t *testing.T) {

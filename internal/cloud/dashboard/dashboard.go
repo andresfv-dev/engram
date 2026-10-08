@@ -701,7 +701,7 @@ func (h *handlers) handleAdmin(w http.ResponseWriter, r *http.Request) {
 		renderComponent(w, r, component)
 		return
 	}
-	renderComponent(w, r, Layout("Admin", p.DisplayName(), "admin", p.IsAdmin(), component))
+	renderComponent(w, r, Layout("Admin", p.DisplayName(), "admin-overview", p.IsAdmin(), component))
 }
 
 // handleAdminProjectControls handles GET /dashboard/admin/projects.
@@ -727,7 +727,7 @@ func (h *handlers) handleAdminProjectControls(w http.ResponseWriter, r *http.Req
 		renderComponent(w, r, component)
 		return
 	}
-	renderComponent(w, r, Layout("Admin Projects", p.DisplayName(), "admin", p.IsAdmin(), component))
+	renderComponent(w, r, Layout("Admin Projects", p.DisplayName(), "admin-projects", p.IsAdmin(), component))
 }
 
 // ─── 11 New Handler Implementations (visual parity batch) ────────────────────
@@ -857,7 +857,7 @@ func (h *handlers) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	// redirect (e.g. ?notice=user_created) maps to a fixed toast message via
 	// NoticeMessage; an unrecognized code renders no toast.
 	notice := NoticeMessage(r.URL.Query().Get("notice"))
-	renderComponent(w, r, LayoutWithNotice("Managed Users", p.DisplayName(), "admin", p.IsAdmin(), notice, component))
+	renderComponent(w, r, LayoutWithNotice("Managed Users", p.DisplayName(), "admin-users", p.IsAdmin(), notice, component))
 }
 
 // loadManagedUserRows fetches every managed human user together with its
@@ -931,7 +931,7 @@ func (h *handlers) handleAdminHealth(w http.ResponseWriter, r *http.Request) {
 		renderComponent(w, r, component)
 		return
 	}
-	renderComponent(w, r, Layout("Admin Health", p.DisplayName(), "admin", p.IsAdmin(), component))
+	renderComponent(w, r, Layout("Admin Health", p.DisplayName(), "admin-health", p.IsAdmin(), component))
 }
 
 // handleAdminSyncTogglePost handles POST /dashboard/admin/projects/{name}/sync.
@@ -1159,7 +1159,7 @@ func (h *handlers) handleAdminAuditLog(w http.ResponseWriter, r *http.Request) {
 		renderComponent(w, r, component)
 		return
 	}
-	renderComponent(w, r, Layout("Audit Log", p.DisplayName(), "admin", p.IsAdmin(), component))
+	renderComponent(w, r, Layout("Audit Log", p.DisplayName(), "admin-audit-log", p.IsAdmin(), component))
 }
 
 // handleAdminAuditLogList handles GET /dashboard/admin/audit-log/list (partial, admin-gated, HTMX).

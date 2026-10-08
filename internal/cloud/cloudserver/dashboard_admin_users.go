@@ -143,7 +143,7 @@ func (s *CloudServer) dashboardAdminLayout(r *http.Request, title string, compon
 	// (from a preceding successful-mutation redirect) maps to a fixed toast
 	// message; an unrecognized or absent code renders no toast.
 	notice := dashboard.NoticeMessage(r.URL.Query().Get("notice"))
-	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin", s.isDashboardAdmin(r), notice, component)
+	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin-users", s.isDashboardAdmin(r), notice, component)
 }
 
 // dashboardAdminLayoutWithNotice is dashboardAdminLayout but takes the notice
@@ -152,7 +152,7 @@ func (s *CloudServer) dashboardAdminLayout(r *http.Request, title string, compon
 // redirect), such as the show-once token-created page, where there is no
 // preceding redirect to carry a "notice" query value.
 func (s *CloudServer) dashboardAdminLayoutWithNotice(r *http.Request, title string, component templ.Component, noticeCode string) templ.Component {
-	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin", s.isDashboardAdmin(r), dashboard.NoticeMessage(noticeCode), component)
+	return dashboard.LayoutWithNotice(title, s.dashboardDisplayName(r), "admin-users", s.isDashboardAdmin(r), dashboard.NoticeMessage(noticeCode), component)
 }
 
 // handleDashboardCreateManagedUser handles POST /dashboard/admin/users.
