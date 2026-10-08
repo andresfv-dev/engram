@@ -1797,3 +1797,55 @@ select:focus {
 		flex: 1 1 45%;
 	}
 }
+
+/* sidebar groups (details/summary) and icons */
+
+.nav-group-title {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+}
+
+.nav-group-title::-webkit-details-marker {
+	display: none;
+}
+
+.nav-group-title::after {
+	content: "";
+	margin-left: auto;
+	width: 0.45rem;
+	height: 0.45rem;
+	border-right: 1.5px solid currentColor;
+	border-bottom: 1.5px solid currentColor;
+	transform: rotate(-45deg);
+	transition: transform 160ms ease;
+}
+
+.nav-group[open] > .nav-group-title::after {
+	transform: rotate(45deg);
+}
+
+.nav-group-title:hover {
+	color: var(--engram-text);
+}
+
+.nav-group-title:focus-visible,
+.side-link:focus-visible {
+	outline: 2px solid var(--engram-primary);
+	outline-offset: -2px;
+}
+
+.nav-group-icon,
+.side-icon {
+	flex: 0 0 auto;
+	width: 1.15rem;
+	height: 1.15rem;
+}
+
+.side-link span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}

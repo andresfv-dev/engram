@@ -69,3 +69,48 @@
 		initToast();
 	}
 })();
+
+// Sidebar groups (sidebar-nav T2): the <details> groups work without JS. With
+// JS, a collapsed or expanded choice is remembered per browser. The group that
+// holds the current page is rendered open by the server and is never forced
+// closed by a stored value. Storage may be unavailable (private mode, blocked
+// site data), so every access is guarded and failure is silent.
+(function () {
+	var PREFIX = "engram.nav.";
+
+	function readState(name) {
+		try {
+			return window.localStorage.getItem(PREFIX + name);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function writeState(name, open) {
+		try {
+			window.localStorage.setItem(PREFIX + name, open ? "open" : "closed");
+		} catch (e) {
+			// Storage blocked or full: the group still toggles, it just is not remembered.
+		}
+	}
+
+	function initNavGroups() {
+		var groups = document.querySelectorAll("details[data-nav-group]");
+		Array.prototype.forEach.call(groups, function (group) {
+			var name = group.getAttribute("data-nav-group");
+			var holdsCurrentPage = group.querySelector('[aria-current="page"]') !== null;
+			var stored = readState(name);
+			if (!holdsCurrentPage && stored === "open") group.open = true;
+			if (!holdsCurrentPage && stored === "closed") group.open = false;
+			group.addEventListener("toggle", function () {
+				writeState(name, group.open);
+			});
+		});
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initNavGroups);
+	} else {
+		initNavGroups();
+	}
+})();

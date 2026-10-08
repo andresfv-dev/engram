@@ -127,3 +127,76 @@ func TestAdminPagesRenderNoDuplicateAdminNav(t *testing.T) {
 		t.Errorf("admin pages must not render the old admin-nav sidebar")
 	}
 }
+
+// ─── T2: collapsible groups and icons ───────────────────────────────────────
+
+func detailsTag(t *testing.T, side, group string) string {
+	t.Helper()
+	marker := `<details class="nav-group nav-group-` + group + `"`
+	start := strings.Index(side, marker)
+	if start < 0 {
+		t.Fatalf("details for group %q not found in %s", group, side)
+	}
+	end := strings.Index(side[start:], ">")
+	return side[start : start+end+1]
+}
+
+func TestSidebarGroupsAreNativeDetails(t *testing.T) {
+	side := sidebarHTML(t, renderLayout(t, "dashboard", true))
+	for _, group := range []string{"workspace", "admin"} {
+		tag := detailsTag(t, side, group)
+		if !strings.Contains(tag, `data-nav-group="`+group+`"`) {
+			t.Errorf("group %q must expose data-nav-group for state persistence: %s", group, tag)
+		}
+	}
+	if got := strings.Count(side, `<summary class="nav-group-title"`); got != 2 {
+		t.Errorf("expected a summary per group, got %d", got)
+	}
+}
+
+func TestSidebarOpensOnlyTheGroupWithTheActivePage(t *testing.T) {
+	cases := []struct {
+		tab                      string
+		workspaceOpen, adminOpen bool
+	}{
+		{"dashboard", true, false},
+		{"contributors", true, false},
+		{"admin-users", false, true},
+		{"admin", false, true},
+		{"unknown-tab", true, false},
+	}
+	for _, tc := range cases {
+		side := sidebarHTML(t, renderLayout(t, tc.tab, true))
+		ws := strings.Contains(detailsTag(t, side, "workspace"), " open")
+		ad := strings.Contains(detailsTag(t, side, "admin"), " open")
+		if ws != tc.workspaceOpen || ad != tc.adminOpen {
+			t.Errorf("tab %q: workspace open=%v admin open=%v, want %v/%v", tc.tab, ws, ad, tc.workspaceOpen, tc.adminOpen)
+		}
+	}
+}
+
+func TestSidebarLinksCarryInlineIcons(t *testing.T) {
+	side := sidebarHTML(t, renderLayout(t, "dashboard", true))
+	links := strings.Count(side, `class="side-link`)
+	icons := strings.Count(side, `<svg class="side-icon" aria-hidden="true"`)
+	if links != 9 || icons != links {
+		t.Errorf("expected 9 links each with an icon, got links=%d icons=%d", links, icons)
+	}
+	if !strings.Contains(side, `stroke="currentColor"`) {
+		t.Errorf("icons must use currentColor")
+	}
+}
+
+// Group state persists through a localStorage helper that must never throw.
+func TestAdminScriptPersistsNavGroupsSafely(t *testing.T) {
+	data, err := StaticFS.ReadFile("static/admin.js")
+	if err != nil {
+		t.Fatalf("read admin.js: %v", err)
+	}
+	js := string(data)
+	for _, want := range []string{"data-nav-group", "localStorage", "try {", "catch"} {
+		if !strings.Contains(js, want) {
+			t.Errorf("admin.js must contain %q", want)
+		}
+	}
+}

@@ -845,3 +845,9 @@ func adminNavItems() []sidebarItem {
 		{Href: "/dashboard/admin/audit-log", Label: "Audit Log", ID: "admin-audit-log"},
 	}
 }
+
+// isAdminTab reports whether activeTab names an Administration page (the
+// legacy "admin" value or any "admin-*" item).
+func isAdminTab(activeTab string) bool {
+	return activeTab == "admin" || strings.HasPrefix(activeTab, "admin-")
+}
