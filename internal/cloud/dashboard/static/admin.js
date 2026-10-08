@@ -114,3 +114,53 @@
 		initNavGroups();
 	}
 })();
+
+// Sidebar drawer (sidebar-nav T3): below 900px the sidebar is an off-canvas
+// drawer opened by the menu button. The "drawer-enabled" class is only added
+// here, so without JS the sidebar stays a normal stacked block and nothing is
+// hidden. Escape, the backdrop and following a link close the drawer.
+(function () {
+	function initDrawer() {
+		var body = document.body;
+		var toggle = document.querySelector("[data-sidebar-toggle]");
+		var sidebar = document.getElementById("shell-sidebar");
+		var backdrop = document.querySelector(".sidebar-backdrop");
+		if (!toggle || !sidebar) return;
+		body.classList.add("drawer-enabled");
+
+		function setOpen(open) {
+			body.classList.toggle("drawer-open", open);
+			toggle.setAttribute("aria-expanded", open ? "true" : "false");
+			toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+			if (backdrop) backdrop.hidden = !open;
+			if (open) {
+				var firstLink = sidebar.querySelector("a, summary, button");
+				if (firstLink) firstLink.focus();
+			} else if (document.activeElement && sidebar.contains(document.activeElement)) {
+				toggle.focus();
+			}
+		}
+
+		toggle.addEventListener("click", function () {
+			setOpen(!body.classList.contains("drawer-open"));
+		});
+		document.addEventListener("click", function (event) {
+			if (!body.classList.contains("drawer-open")) return;
+			if (event.target.closest("[data-sidebar-close]") || event.target.closest("#shell-sidebar a")) {
+				setOpen(false);
+			}
+		});
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "Escape" && body.classList.contains("drawer-open")) setOpen(false);
+		});
+		window.addEventListener("resize", function () {
+			if (window.innerWidth > 900 && body.classList.contains("drawer-open")) setOpen(false);
+		});
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initDrawer);
+	} else {
+		initDrawer();
+	}
+})();

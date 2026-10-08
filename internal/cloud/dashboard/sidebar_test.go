@@ -200,3 +200,61 @@ func TestAdminScriptPersistsNavGroupsSafely(t *testing.T) {
 		}
 	}
 }
+
+// ─── T3: responsive drawer ──────────────────────────────────────────────────
+
+func TestLayoutRendersDrawerToggleAndBackdrop(t *testing.T) {
+	body := renderLayout(t, "dashboard", false)
+	for _, want := range []string{
+		`class="sidebar-toggle"`,
+		`data-sidebar-toggle`,
+		`aria-controls="shell-sidebar"`,
+		`aria-expanded="false"`,
+		`aria-label="Open navigation"`,
+		`class="sidebar-backdrop"`,
+		`data-sidebar-close`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout must contain %q", want)
+		}
+	}
+	if strings.Index(body, `data-sidebar-toggle`) > strings.Index(body, `<main class="shell-main"`) {
+		t.Errorf("menu button must precede the main content")
+	}
+	if strings.Contains(sidebarHTML(t, body), `data-sidebar-toggle`) {
+		t.Errorf("menu button must live outside the off-canvas sidebar")
+	}
+}
+
+func TestAdminScriptDrivesDrawer(t *testing.T) {
+	data, err := StaticFS.ReadFile("static/admin.js")
+	if err != nil {
+		t.Fatalf("read admin.js: %v", err)
+	}
+	js := string(data)
+	for _, want := range []string{"data-sidebar-toggle", "data-sidebar-close", "drawer-enabled", "drawer-open", "Escape", "aria-expanded"} {
+		if !strings.Contains(js, want) {
+			t.Errorf("admin.js must contain %q", want)
+		}
+	}
+}
+
+func TestStylesheetDefinesOffCanvasDrawerBelow900px(t *testing.T) {
+	data, err := StaticFS.ReadFile("static/styles.css")
+	if err != nil {
+		t.Fatalf("read styles.css: %v", err)
+	}
+	css := string(data)
+	for _, want := range []string{
+		"@media (max-width: 900px)",
+		".drawer-enabled .shell-sidebar",
+		"translateX(-100%)",
+		".drawer-open .shell-sidebar",
+		".sidebar-toggle",
+		".sidebar-backdrop",
+	} {
+		if !strings.Contains(css, want) {
+			t.Errorf("styles.css must contain %q", want)
+		}
+	}
+}

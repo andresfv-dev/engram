@@ -1704,14 +1704,19 @@ select:focus {
 .sidebar-nav {
 	display: flex;
 	flex-direction: column;
+	/* Pico styles bare <nav> as space-between; groups must pack at the top. */
+	justify-content: flex-start;
+	align-items: stretch;
 	gap: 1.1rem;
 	flex: 1 1 auto;
 }
 
 .nav-group {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
+	display: block;
+}
+
+.nav-group .side-link + .side-link {
+	margin-top: 0.25rem;
 }
 
 .nav-group + .nav-group {
@@ -1813,19 +1818,21 @@ select:focus {
 	display: none;
 }
 
-.nav-group-title::after {
-	content: "";
-	margin-left: auto;
-	width: 0.45rem;
-	height: 0.45rem;
-	border-right: 1.5px solid currentColor;
-	border-bottom: 1.5px solid currentColor;
-	transform: rotate(-45deg);
-	transition: transform 160ms ease;
+/* Pico draws its own summary chevron; keep it, but size and place it here. */
+.shell-sidebar .nav-group {
+	margin: 0;
 }
 
-.nav-group[open] > .nav-group-title::after {
-	transform: rotate(45deg);
+.shell-sidebar details[open] > summary.nav-group-title {
+	margin-bottom: 0.35rem;
+}
+
+.nav-group-title::after {
+	float: none;
+	margin: 0 0 0 auto;
+	width: 0.9rem;
+	height: 0.9rem;
+	flex: 0 0 auto;
 }
 
 .nav-group-title:hover {
@@ -1848,4 +1855,69 @@ select:focus {
 .side-link span {
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+
+/* responsive drawer: below 900px the sidebar is off-canvas (JS-enabled only) */
+
+.sidebar-toggle,
+.sidebar-backdrop {
+	display: none;
+}
+
+@media (max-width: 900px) {
+	.drawer-enabled .sidebar-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0.75rem 0.9rem 0;
+		padding: 0.5rem 0.8rem;
+		font-size: 0.78rem;
+	}
+
+	.drawer-enabled .shell-sidebar {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: min(18rem, 85vw);
+		overflow-y: auto;
+		background: var(--engram-base);
+		border-right: 1px solid rgba(110, 106, 134, 0.65);
+		border-bottom: none;
+		transform: translateX(-100%);
+		visibility: hidden;
+		transition: transform 200ms ease, visibility 0s linear 200ms;
+		z-index: 30;
+	}
+
+	.drawer-open .shell-sidebar {
+		transform: translateX(0);
+		visibility: visible;
+		transition: transform 200ms ease;
+	}
+
+	.drawer-enabled .sidebar-backdrop:not([hidden]) {
+		display: block;
+		position: fixed;
+		inset: 0;
+		background: rgba(9, 8, 16, 0.65);
+		z-index: 20;
+	}
+
+	.drawer-open {
+		overflow: hidden;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.drawer-enabled .shell-sidebar {
+		transition: none;
+	}
+}
+
+.sidebar-user .logout-link {
+	padding: 0.35rem 0.7rem;
+	font-size: 0.72rem;
+	width: auto;
+	margin: 0;
 }
