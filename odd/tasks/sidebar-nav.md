@@ -81,3 +81,10 @@ Out of scope for this feature (possible follow-up, only where backed by real dat
 - `go vet ./internal/cloud/...`: clean. `go build -o /dev/null ./cmd/engram`: ok.
 - Not covered: interactive drawer click/Escape in a real browser beyond one scripted open (the toggle click rendered the open drawer); no JS unit-test runner exists in the repo.
 - Stat cards, charts, quick actions and status widgets from the mockup remain out of scope.
+
+### Deploy - 2026-10-07
+- Pre-deploy backup: `backups/engram-cloud-2026-10-07-2343-pre-sidebar-nav.sql` (pg_dump, mode 0600, untracked).
+- Image `local/engram-cloud:v2.1.0-sidebar-nav` built; only the `cloud` container recreated (`up -d --no-deps cloud`); Postgres container and volume untouched.
+- Data counts before = after: 6 projects, 380 chunks, 8117 mutations, 19 grants, 9 human users.
+- Live: `/health` 200, `/dashboard/login` 200, stylesheet `?v=1411be1ba36b` contains the sidebar rules.
+- Rollback: set the compose image to `local/engram-cloud:v2.1.0-admin-ui` and run `docker compose up -d --no-deps cloud`.
